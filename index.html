@@ -32,11 +32,25 @@
 <h1>📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
 
+<!-- 🔥 Embed JSON inside HTML (no external file needed) -->
+<script id="projectsData" type="application/json">
+[
+  {
+    "name": "Project A",
+    "deadline": "2025-03-01T00:00:00"
+  },
+  {
+    "name": "Project B",
+    "deadline": "2025-06-15T12:00:00"
+  }
+]
+</script>
+
 <script>
-  async function loadProjects() {
-    const res = await fetch('./projects.json');
-    const projects = await res.json();
-    
+  function loadProjects() {
+    const jsonText = document.getElementById('projectsData').textContent;
+    const projects = JSON.parse(jsonText);
+
     const container = document.getElementById('container');
 
     projects.forEach((proj, index) => {
