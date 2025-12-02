@@ -30,34 +30,26 @@
 <body>
 <h1>📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
-<!-- JSON embedded safely in HTML -->
-<script id="projectsData" type="application/json">
-[
- {
-   "name": "新鴻基ICC售樓廠(WWA25) 起貨倒數",
-   "deadline": "2026-01-18T20:00:00"
- },
- {
-   "name": "華潤 Silvercord Sales Gallery 起貨倒數",
-   "deadline": "2026-04-13T21:00:00"
- }
-]
-</script>
 <script>
- function loadProjects() {
-   const jsonText = document.getElementById('projectsData').textContent.trim();
-   const projects = JSON.parse(jsonText);
-   const container = document.getElementById('container');
-   projects.forEach((proj, index) => {
-     const div = document.createElement('div');
-     div.className = 'project';
-     div.innerHTML = `
+ async function loadProjects() {
+   try {
+     const response = await fetch('projects.json?v=' + Date.now());
+     // 加 timestamp 防止 GitHub Cache
+     const projects = await response.json();
+     const container = document.getElementById('container');
+     projects.forEach((proj, index) => {
+       const div = document.createElement('div');
+       div.className = 'project';
+       div.innerHTML = `
 <h2>${proj.name}</h2>
 <div class="countdown" id="cd${index}"></div>
-     `;
-     container.appendChild(div);
-     createCountdown(proj.deadline, `cd${index}`);
-   });
+       `;
+       container.appendChild(div);
+       createCountdown(proj.deadline, `cd${index}`);
+     });
+   } catch (e) {
+     console.error("Load JSON failed:", e);
+   }
  }
  function createCountdown(deadline, elementId) {
    const targetDate = new Date(deadline);
