@@ -1,97 +1,84 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Project Countdown Board</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .project {
-      border: 1px solid #ccc;
-      padding: 20px;
-      margin: 20px auto;
-      width: 400px;
-      border-radius: 8px;
-      box-shadow: 0 0 8px #eee;
-    }
-    .countdown {
-      font-size: 24px;
-      font-weight: bold;
-      margin-top: 10px;
-      text-align: center;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Project Countdown Board</title>
+<style>
+   body {
+     font-family: Arial, sans-serif;
+     margin: 40px;
+   }
+   h1 {
+     text-align: center;
+   }
+   .project {
+     border: 1px solid #ccc;
+     padding: 20px;
+     margin: 20px auto;
+     width: 400px;
+     border-radius: 8px;
+     box-shadow: 0 0 8px #eee;
+   }
+   .countdown {
+     font-size: 24px;
+     font-weight: bold;
+     margin-top: 10px;
+     text-align: center;
+   }
+</style>
 </head>
 <body>
-
 <h1>📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
-
-<!-- Safe JSON block -->
+<!-- JSON embedded safely in HTML -->
 <script id="projectsData" type="application/json">
 [
-  {
-    "name": "Project A",
-    "deadline": "2025-03-01T00:00:00"
-  },
-  {
-    "name": "Project B",
-    "deadline": "2025-06-15T12:00:00"
-  }
+ {
+   "name": "Project A",
+   "deadline": "2025-03-01T00:00:00"
+ },
+ {
+   "name": "Project B",
+   "deadline": "2025-06-15T12:00:00"
+ }
 ]
 </script>
-
 <script>
-  function loadProjects() {
-    const jsonText = document.getElementById('projectsData').textContent.trim();
-    const projects = JSON.parse(jsonText);
-
-    const container = document.getElementById('container');
-
-    projects.forEach((proj, index) => {
-      const div = document.createElement('div');
-      div.className = 'project';
-      div.innerHTML = `
-        <h2>${proj.name}</h2>
-        <div class="countdown" id="cd${index}"></div>
-      `;
-      container.appendChild(div);
-      createCountdown(proj.deadline, cd${index});
-    });
-  }
-
-  function createCountdown(deadline, elementId) {
-    const targetDate = new Date(deadline);
-
-    function update() {
-      const now = new Date();
-      const diff = targetDate - now;
-      const el = document.getElementById(elementId);
-
-      if (diff <= 0) {
-        el.innerHTML = "🎉 Completed!";
-        return;
-      }
-
-      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const m = Math.floor((diff / (1000 * 60)) % 60);
-      const s = Math.floor((diff / 1000) % 60);
-
-      el.innerHTML = ${d} Days ${h} Hours ${m} Minutes ${s} Seconds;
-    }
-
-    update();
-    setInterval(update, 1000);
-  }
-
-  loadProjects();
+ function loadProjects() {
+   const jsonText = document.getElementById('projectsData').textContent.trim();
+   const projects = JSON.parse(jsonText);
+   const container = document.getElementById('container');
+   projects.forEach((proj, index) => {
+     const div = document.createElement('div');
+     div.className = 'project';
+     div.innerHTML = `
+<h2>${proj.name}</h2>
+<div class="countdown" id="cd${index}"></div>
+     `;
+     container.appendChild(div);
+     createCountdown(proj.deadline, `cd${index}`);
+   });
+ }
+ function createCountdown(deadline, elementId) {
+   const targetDate = new Date(deadline);
+   function update() {
+     const now = new Date();
+     const diff = targetDate - now;
+     const el = document.getElementById(elementId);
+     if (diff <= 0) {
+       el.innerHTML = "🎉 Completed!";
+       return;
+     }
+     const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+     const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+     const m = Math.floor((diff / (1000 * 60)) % 60);
+     const s = Math.floor((diff / 1000) % 60);
+     el.innerHTML = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
+   }
+   update();
+   setInterval(update, 1000);
+ }
+ loadProjects();
 </script>
-
 </body>
 </html>
