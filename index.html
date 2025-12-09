@@ -4,150 +4,136 @@
 <meta charset="UTF-8">
 <title>Project Countdown Board</title>
 <style>
-   body {
-     font-family: Arial, sans-serif;
-     margin: 40px;
-   }
-   h1 {
-     text-align: center;
-   }
-   .project {
-     border: 1px solid #ccc;
-     padding: 20px;
-     margin: 20px auto;
-     width: 800px;
-     border-radius: 8px;
-     box-shadow: 0 0 8px #eee;
-     text-align: center;
-   }
-   .countdown {
-     font-size: 24px;
-     font-weight: bold;
-     margin-top: 10px;
-     text-align: center;
-   }
-   /* 新增按鈕區 */
-   #addBox {
-     width: 800px;
-     margin: 20px auto;
-     padding: 20px;
-     border: 1px solid #ddd;
-     border-radius: 8px;
-   }
-   input, button {
-     padding: 8px;
-     margin: 5px 0;
-     width: 100%;
-     font-size: 16px;
-   }
+  body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+  }
+  h1 {
+    text-align: center;
+  }
+  .project {
+    border: 1px solid #ccc;
+    padding: 20px;
+    margin: 20px auto;
+    width: 800px;
+    border-radius: 8px;
+    box-shadow: 0 0 8px #eee;
+    text-align: center;
+  }
+  .countdown {
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 10px;
+    text-align: center;
+  }
+  /* Add Project Box */
+  #addBox {
+    width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+  }
+  input, button {
+    padding: 8px;
+    margin: 5px 0;
+    width: 100%;
+    font-size: 16px;
+  }
 </style>
 </head>
 <body>
-
 <h1>📅 Project Countdown Dashboard</h1>
-
-<!-- 🔽 用戶新增 Project UI -->
+<!-- Add Project UI -->
 <div id="addBox">
-  <h3>➕ 新增 Project</h3>
-  <input id="pName" type="text" placeholder="Project 名稱">
-  <input id="pDeadline" type="datetime-local">
-  <button onclick="addProject()">加入 Project</button>
+<h3>➕ 新增 Project</h3>
+<input id="pName" type="text" placeholder="Project 名稱">
+<input id="pDeadline" type="datetime-local">
+<button onclick="addProject()">加入 Project</button>
 </div>
-
-<!-- 🔽 Countdown 顯示區 -->
+<!-- Countdown container -->
 <div id="container"></div>
-
 <script>
-
 // ---------------------------
-// 1️⃣ 讀取 Project 資料（LocalStorage 優先）
+// 1️⃣ Load projects (JSON → localStorage)
 // ---------------------------
 async function loadProjects() {
-  let projects = JSON.parse(localStorage.getItem("projects"));
-
-  if (!projects) {
-    // 如果 localStorage 冇，先用你 GitHub json 初始值
-    const response = await fetch("projects.json?v=" + Date.now());
-    projects = await response.json();
-    localStorage.setItem("projects", JSON.stringify(projects));
-  }
-
-  renderProjects(projects);
+ // Always reload JSON first (避免 localStorage 阻住你）
+ let projects;
+ try {
+   const response = await fetch("./projects.json?v=" + Date.now());
+   projects = await response.json();
+ } catch (err) {
+   console.warn("⚠ 無法讀取 projects.json，使用空陣列", err);
+   projects = [];
+ }
+ // Save into localStorage
+ localStorage.setItem("projects", JSON.stringify(projects));
+ // Render
+ renderProjects(projects);
 }
-
 // ---------------------------
-// 2️⃣ 顯示所有倒數計時
+// 2️⃣ Render Project List
 // ---------------------------
 function renderProjects(projects) {
-  const container = document.getElementById("container");
-  container.innerHTML = ""; // 清空
-
-  projects.forEach((proj, index) => {
-    const div = document.createElement("div");
-    div.className = "project";
-    div.innerHTML = `
-      <h2>${proj.name}</h2>
-      <div class="countdown" id="cd${index}"></div>
-    `;
-    container.appendChild(div);
-    createCountdown(proj.deadline, cd${index});
-  });
+ const container = document.getElementById("container");
+ container.innerHTML = "";
+ projects.forEach((proj, index) => {
+   const div = document.createElement("div");
+   div.className = "project";
+   div.innerHTML = `
+<h2>${proj.name}</h2>
+<div class="countdown" id="cd${index}"></div>
+   `;
+   container.appendChild(div);
+   createCountdown(proj.deadline, `cd${index}`);
+ });
 }
-
 // ---------------------------
-// 3️⃣ 新增 Project
+// 3️⃣ Add Project
 // ---------------------------
 function addProject() {
-  const name = document.getElementById("pName").value.trim();
-  const deadline = document.getElementById("pDeadline").value;
-
-  if (!name || !deadline) {
-    alert("請輸入 Project 名稱和 Deadline");
-    return;
-  }
-
-  const projects = JSON.parse(localStorage.getItem("projects")) || [];
-
-  projects.push({
-    name: name,
-    deadline: deadline
-  });
-
-  localStorage.setItem("projects", JSON.stringify(projects));
-
-  // UI refresh
-  renderProjects(projects);
-
-  // 清空輸入格
-  document.getElementById("pName").value = "";
-  document.getElementById("pDeadline").value = "";
+ const name = document.getElementById("pName").value.trim();
+ const deadline = document.getElementById("pDeadline").value; // yyyy-MM-ddTHH:mm
+ if (!name || !deadline) {
+   alert("請輸入 Project 名稱和 Deadline");
+   return;
+ }
+ // datetime-local 沒有秒 → 自動補上
+ const finalDeadline = deadline.length === 16 ? deadline + ":00" : deadline;
+ const projects = JSON.parse(localStorage.getItem("projects")) || [];
+ projects.push({
+   name: name,
+   deadline: finalDeadline
+ });
+ localStorage.setItem("projects", JSON.stringify(projects));
+ renderProjects(projects);
+ document.getElementById("pName").value = "";
+ document.getElementById("pDeadline").value = "";
 }
-
 // ---------------------------
-// 4️⃣ 倒數計時 Function
+// 4️⃣ Countdown function
 // ---------------------------
 function createCountdown(deadline, elementId) {
-  const targetDate = new Date(deadline);
-  function update() {
-    const now = new Date();
-    const diff = targetDate - now;
-    const el = document.getElementById(elementId);
-    if (diff <= 0) {
-      el.innerHTML = "🎉 Completed!";
-      return;
-    }
-    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-    const m = Math.floor((diff / (1000 * 60)) % 60);
-    const s = Math.floor((diff / 1000) % 60);
-    el.innerHTML = ${d} Days ${h} Hours ${m} Minutes ${s} Seconds;
-  }
-  update();
-  setInterval(update, 1000);
+ const targetDate = new Date(deadline);
+ function update() {
+   const now = new Date();
+   const diff = targetDate - now;
+   const el = document.getElementById(elementId);
+   if (diff <= 0) {
+     el.innerHTML = "🎉 Completed!";
+     return;
+   }
+   const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+   const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+   const m = Math.floor((diff / (1000 * 60)) % 60);
+   const s = Math.floor((diff / 1000) % 60);
+   el.innerHTML = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
+ }
+ update();
+ setInterval(update, 1000);
 }
-
 loadProjects();
-
 </script>
 </body>
 </html>
