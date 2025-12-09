@@ -347,7 +347,7 @@
               if(daysLeft <= 0){
                 tag.className = 'tag overdue';
                 tag.textContent = 'OVERDUE';
-              } else if(daysLeft <= ${THRESHOLD_URGENT_DAYS}){
+              } else if(daysLeft <= THRESHOLD_URGENT_DAYS){
                 tag.className = 'tag urgent';
                 tag.textContent = daysLeft + ' days left';
                 if(fill) fill.style.background = 'linear-gradient(90deg,var(--orange),#ffb37a)';
