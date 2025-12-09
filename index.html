@@ -2,137 +2,222 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Project Countdown Board</title>
+<title>Project Countdown Dashboard</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 40px;
-  }
-  h1 {
-    text-align: center;
-  }
-  .project {
-    border: 1px solid #ccc;
-    padding: 20px;
-    margin: 20px auto;
-    width: 800px;
-    border-radius: 8px;
-    box-shadow: 0 0 8px #eee;
-    text-align: center;
-  }
-  .countdown {
-    font-size: 24px;
-    font-weight: bold;
-    margin-top: 10px;
-    text-align: center;
-  }
-  /* Add Project Box */
-  #addBox {
-    width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-  }
-  input, button {
-    padding: 8px;
-    margin: 5px 0;
-    width: 100%;
-    font-size: 16px;
-  }
+/* ===== 全局 ===== */
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f5f7fa;
+  color: #333;
+}
+h1 {
+  text-align: center;
+  margin-top: 40px;
+  font-size: 36px;
+  color: #1f3c88;
+}
+#container {
+  max-width: 900px;
+  margin: 20px auto 60px auto;
+}
+
+/* ===== Add Project 區域 ===== */
+#addBox {
+  width: 900px;
+  margin: 20px auto;
+  padding: 25px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+#addBox h3 {
+  margin-top: 0;
+  color: #1f3c88;
+}
+#addBox input, #addBox button {
+  padding: 12px;
+  margin: 8px 0;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+#addBox input:focus {
+  outline: none;
+  border-color: #1f3c88;
+}
+#addBox button {
+  background: #1f3c88;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+#addBox button:hover {
+  background: #3b59c5;
+}
+
+/* ===== Project 卡片 ===== */
+.project {
+  background: linear-gradient(135deg, #ffffff 0%, #e9f0ff 100%);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px auto;
+  width: 900px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  text-align: center;
+  position: relative;
+  transition: transform 0.2s;
+}
+.project:hover {
+  transform: translateY(-4px);
+}
+.project h2 {
+  margin: 0;
+  color: #1f3c88;
+}
+.countdown {
+  font-size: 22px;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+/* ===== Delete Button ===== */
+.project button {
+  position: relative;
+  margin-top: 15px;
+  padding: 8px 16px;
+  font-size: 14px;
+  background: #ff4c4c;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.project button:hover {
+  background: #ff1a1a;
+}
 </style>
 </head>
 <body>
+
 <h1>📅 Project Countdown Dashboard</h1>
-<!-- Add Project UI -->
+
+<!-- Add Project 區域 -->
 <div id="addBox">
-<h3>➕ 新增 Project</h3>
-<input id="pName" type="text" placeholder="Project 名稱">
-<input id="pDeadline" type="datetime-local">
-<button onclick="addProject()">加入 Project</button>
+  <h3>➕ 新增 Project</h3>
+  <input id="pName" type="text" placeholder="Project 名稱">
+  <input id="pDeadline" type="datetime-local">
+  <button onclick="addProject()">加入 Project</button>
 </div>
+
 <!-- Countdown container -->
 <div id="container"></div>
+
 <script>
 // ---------------------------
 // 1️⃣ Load projects (JSON → localStorage)
 // ---------------------------
 async function loadProjects() {
- // Always reload JSON first (避免 localStorage 阻住你）
- let projects;
- try {
-   const response = await fetch("./projects.json?v=" + Date.now());
-   projects = await response.json();
- } catch (err) {
-   console.warn("⚠ 無法讀取 projects.json，使用空陣列", err);
-   projects = [];
- }
- // Save into localStorage
- localStorage.setItem("projects", JSON.stringify(projects));
- // Render
- renderProjects(projects);
+  let projects;
+  try {
+    const response = await fetch("./projects.json?v=" + Date.now());
+    projects = await response.json();
+  } catch (err) {
+    console.warn("⚠ 無法讀取 projects.json，使用空陣列", err);
+    projects = [];
+  }
+  localStorage.setItem("projects", JSON.stringify(projects));
+  renderProjects(projects);
 }
+
 // ---------------------------
-// 2️⃣ Render Project List
+// 2️⃣ Render Project List + Delete Button
 // ---------------------------
 function renderProjects(projects) {
- const container = document.getElementById("container");
- container.innerHTML = "";
- projects.forEach((proj, index) => {
-   const div = document.createElement("div");
-   div.className = "project";
-   div.innerHTML = `
-<h2>${proj.name}</h2>
-<div class="countdown" id="cd${index}"></div>
-   `;
-   container.appendChild(div);
-   createCountdown(proj.deadline, `cd${index}`);
- });
+  const container = document.getElementById("container");
+  container.innerHTML = "";
+
+  projects.forEach((proj, index) => {
+    const div = document.createElement("div");
+    div.className = "project";
+    div.innerHTML = `
+      <h2>${proj.name}</h2>
+      <div class="countdown" id="cd${index}"></div>
+      <button onclick="deleteProject(${index})">🗑 刪除</button>
+    `;
+    container.appendChild(div);
+    createCountdown(proj.deadline, cd${index});
+  });
 }
+
 // ---------------------------
 // 3️⃣ Add Project
 // ---------------------------
 function addProject() {
- const name = document.getElementById("pName").value.trim();
- const deadline = document.getElementById("pDeadline").value; // yyyy-MM-ddTHH:mm
- if (!name || !deadline) {
-   alert("請輸入 Project 名稱和 Deadline");
-   return;
- }
- // datetime-local 沒有秒 → 自動補上
- const finalDeadline = deadline.length === 16 ? deadline + ":00" : deadline;
- const projects = JSON.parse(localStorage.getItem("projects")) || [];
- projects.push({
-   name: name,
-   deadline: finalDeadline
- });
- localStorage.setItem("projects", JSON.stringify(projects));
- renderProjects(projects);
- document.getElementById("pName").value = "";
- document.getElementById("pDeadline").value = "";
+  const name = document.getElementById("pName").value.trim();
+  const deadline = document.getElementById("pDeadline").value;
+
+  if (!name || !deadline) {
+    alert("請輸入 Project 名稱和 Deadline");
+    return;
+  }
+
+  const finalDeadline = deadline.length === 16 ? deadline + ":00" : deadline;
+
+  const projects = JSON.parse(localStorage.getItem("projects")) || [];
+  projects.push({ name: name, deadline: finalDeadline });
+
+  localStorage.setItem("projects", JSON.stringify(projects));
+  renderProjects(projects);
+
+  document.getElementById("pName").value = "";
+  document.getElementById("pDeadline").value = "";
 }
+
 // ---------------------------
-// 4️⃣ Countdown function
+// 4️⃣ Delete Project
+// ---------------------------
+function deleteProject(index) {
+  if (!confirm("確認刪除此 Project 嗎？")) return;
+
+  const projects = JSON.parse(localStorage.getItem("projects")) || [];
+  projects.splice(index, 1);
+
+  localStorage.setItem("projects", JSON.stringify(projects));
+  renderProjects(projects);
+}
+
+// ---------------------------
+// 5️⃣ Countdown function
 // ---------------------------
 function createCountdown(deadline, elementId) {
- const targetDate = new Date(deadline);
- function update() {
-   const now = new Date();
-   const diff = targetDate - now;
-   const el = document.getElementById(elementId);
-   if (diff <= 0) {
-     el.innerHTML = "🎉 Completed!";
-     return;
-   }
-   const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-   const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-   const m = Math.floor((diff / (1000 * 60)) % 60);
-   const s = Math.floor((diff / 1000) % 60);
-   el.innerHTML = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
- }
- update();
- setInterval(update, 1000);
+  const targetDate = new Date(deadline);
+
+  function update() {
+    const now = new Date();
+    const diff = targetDate - now;
+    const el = document.getElementById(elementId);
+
+    if (diff <= 0) {
+      el.innerHTML = "🎉 Completed!";
+      return;
+    }
+
+    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const m = Math.floor((diff / (1000 * 60)) % 60);
+    const s = Math.floor((diff / 1000) % 60);
+
+    el.innerHTML = ${d} Days ${h} Hours ${m} Minutes ${s} Seconds;
+  }
+
+  update();
+  setInterval(update, 1000);
 }
+
 loadProjects();
 </script>
 </body>
