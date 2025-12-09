@@ -5,110 +5,85 @@
 <title>Project Countdown Dashboard</title>
 <style>
 body {
-  font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  margin:0; padding:0; background:#f5f7fa; color:#333;
+ font-family: Arial, sans-serif;
+ padding: 20px;
+ background: #f3f4f6;
 }
-h1 {
-  text-align:center; margin-top:40px;
-  font-size:36px; color:#1f3c88;
-}
-#container { max-width:900px; margin:20px auto 60px auto; }
 .project {
-  background:linear-gradient(135deg,#ffffff 0%,#e9f0ff 100%);
-  border-radius:12px; padding:20px;
-  margin:20px auto; width:900px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.08);
-  text-align:center; transition: transform 0.2s;
+ background: white;
+ padding: 20px;
+ margin: 20px auto;
+ max-width: 800px;
+ border-radius: 10px;
+ box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-.project:hover { transform:translateY(-4px); }
-.project h2 { margin:0; color:#1f3c88; }
-.project p { margin:5px 0; font-weight:500; color:#555; }
-.countdown { font-size:22px; font-weight:bold; margin-top:10px; }
+.countdown {
+ margin-top: 10px;
+ font-size: 22px;
+ font-weight: bold;
+}
 </style>
 </head>
 <body>
-
-<h1>📅 Project Countdown Dashboard</h1>
+<h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
-
 <script>
-// JSON Feed URL
 const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
-
 async function loadProjects() {
-  try {
-    const res = await fetch(jsonURL);
-    let text = await res.text();
-
-    // 去除 JSONP 包裝
-    const json = JSON.parse(text.substr(47).slice(0,-2));
-    const rows = json.table.rows;
-
-    // A=0, B=1, C=2, D=3, E=4
-    const projects = rows.map(row => ({
-      name:    row.c[0]?.v || "",  // Project Name
-      dltxt:   row.c[2]?.v || "",  // DeadlineText（用這個來倒數）
-      manager: row.c[3]?.v || "",  // Project Manager
-      sec:     row.c[4]?.v || ""   // Project Secretary
-    }));
-
-    renderProjects(projects);
-  } catch(e) {
-    console.error("JSON 抓取出錯:", e);
-  }
+ try {
+   const res = await fetch(jsonURL);
+   let text = await res.text();
+   // 用你提供的 JSON 精準裁切
+   const json = JSON.parse(text.substring(54, text.length - 2));
+   const rows = json.table.rows;
+   const projects = rows.map(r => ({
+     name: r.c[0]?.v || "",
+     deadlineText: r.c[2]?.v || "",
+     manager: r.c[3]?.v || "",
+     sec: r.c[4]?.v || ""
+   }));
+   render(projects);
+ } catch (err) {
+   console.error("JSON load error:", err);
+ }
 }
-
-function renderProjects(projects) {
-  const container = document.getElementById("container");
-  container.innerHTML = "";
-
-  projects.forEach((proj,index)=>{
-    // skip empty rows
-    if (!proj.name.trim()) return;
-
-    const div = document.createElement("div");
-    div.className="project";
-    div.innerHTML = `
-      <h2>${proj.name}</h2>
-      <p><strong>Project Manager:</strong> ${proj.manager}</p>
-      <p><strong>Project Secretary:</strong> ${proj.sec}</p>
-      <div class="countdown" id="cd${index}"></div>
-    `;
-    container.appendChild(div);
-    createCountdown(proj.dltxt, cd${index});
-  });
+function render(list) {
+ const container = document.getElementById("container");
+ container.innerHTML = "";
+ list.forEach((p, i) => {
+   if (!p.name) return;
+   const div = document.createElement("div");
+   div.className = "project";
+   div.innerHTML = `
+<h2>${p.name}</h2>
+<p><b>Project Manager:</b> ${p.manager}</p>
+<p><b>Project Secretary:</b> ${p.sec}</p>
+<div class="countdown" id="cd${i}"></div>
+   `;
+   container.appendChild(div);
+   createCountdown(p.deadlineText, "cd" + i);
+ });
 }
-
-function createCountdown(deadlineStr, elementId) {
-  // DeadlineText 例如：1/18/2026 20:00
-  const targetDate = new Date(deadlineStr.replace(" ","T"));
-
-  function update() {
-    const now = new Date();
-    const diff = targetDate - now;
-    const el = document.getElementById(elementId);
-
-    if (!el) return;
-
-    if (diff <= 0) {
-      el.innerHTML = "🎉 Completed!";
-      return;
-    }
-
-    const d = Math.floor(diff / (1000*60*60*24));
-    const h = Math.floor((diff / (1000*60*60)) % 24);
-    const m = Math.floor((diff / (1000*60)) % 60);
-    const s = Math.floor((diff / 1000) % 60);
-
-    el.innerHTML = ${d} Days ${h} Hours ${m} Minutes ${s} Seconds;
-  }
-
-  update();
-  setInterval(update,1000);
+function createCountdown(dltxt, id) {
+ const target = new Date(dltxt.replace(" ", "T"));
+ function tick() {
+   const el = document.getElementById(id);
+   const now = new Date();
+   const diff = target - now;
+   if (diff <= 0) {
+     el.textContent = "🎉 Completed!";
+     return;
+   }
+   const d = Math.floor(diff / (1000*60*60*24));
+   const h = Math.floor((diff / (1000*60*60)) % 24);
+   const m = Math.floor((diff / (1000*60)) % 60);
+   const s = Math.floor((diff / 1000) % 60);
+   el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
+ }
+ tick();
+ setInterval(tick, 1000);
 }
-
 loadProjects();
 </script>
-
 </body>
 </html>
