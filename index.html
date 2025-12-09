@@ -5,22 +5,22 @@
 <title>Project Countdown Dashboard</title>
 <style>
 body {
- font-family: Arial, sans-serif;
- padding: 20px;
- background: #f3f4f6;
+   font-family: Arial, sans-serif;
+   padding: 20px;
+   background: #f3f4f6;
 }
 .project {
- background: white;
- padding: 20px;
- margin: 20px auto;
- max-width: 800px;
- border-radius: 10px;
- box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+   background: white;
+   padding: 20px;
+   margin: 20px auto;
+   max-width: 800px;
+   border-radius: 10px;
+   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .countdown {
- margin-top: 10px;
- font-size: 22px;
- font-weight: bold;
+   margin-top: 10px;
+   font-size: 22px;
+   font-weight: bold;
 }
 </style>
 </head>
@@ -28,61 +28,78 @@ body {
 <h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
 <script>
-const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
+const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json";
+/* -------------------------------
+  1. Load Google Sheet Data (Auto JSON Extract)
+-------------------------------- */
 async function loadProjects() {
- try {
-   const res = await fetch(jsonURL);
-   let text = await res.text();
-   // 用你提供的 JSON 精準裁切
-   const json = JSON.parse(text.substring(54, text.length - 2));
-   const rows = json.table.rows;
-   const projects = rows.map(r => ({
-     name: r.c[0]?.v || "",
-     deadlineText: r.c[2]?.v || "",
-     manager: r.c[3]?.v || "",
-     sec: r.c[4]?.v || ""
-   }));
-   render(projects);
- } catch (err) {
-   console.error("JSON load error:", err);
- }
+   try {
+       const res = await fetch(jsonURL);
+       let text = await res.text();
+       // 🔥 自動搵 JSON 開頭 `{` 同結尾 `}`
+       const start = text.indexOf("{");
+       const end = text.lastIndexOf("}") + 1;
+       if (start === -1 || end === -1) {
+           throw new Error("JSON not found in Google Sheets response");
+       }
+       // 🔥 提取乾淨 JSON
+       const cleanText = text.substring(start, end);
+       const json = JSON.parse(cleanText);
+       const rows = json.table.rows;
+       const projects = rows.map(r => ({
+           name: r.c[0]?.v || "",
+           deadlineText: r.c[2]?.v || "",
+           manager: r.c[3]?.v || "",
+           sec: r.c[4]?.v || ""
+       }));
+       render(projects);
+   } catch (err) {
+       console.error("JSON load error:", err);
+   }
 }
+/* -------------------------------
+  2. Render Project Cards
+-------------------------------- */
 function render(list) {
- const container = document.getElementById("container");
- container.innerHTML = "";
- list.forEach((p, i) => {
-   if (!p.name) return;
-   const div = document.createElement("div");
-   div.className = "project";
-   div.innerHTML = `
+   const container = document.getElementById("container");
+   container.innerHTML = "";
+   list.forEach((p, i) => {
+       if (!p.name) return; // Skip empty rows
+       const div = document.createElement("div");
+       div.className = "project";
+       div.innerHTML = `
 <h2>${p.name}</h2>
 <p><b>Project Manager:</b> ${p.manager}</p>
 <p><b>Project Secretary:</b> ${p.sec}</p>
 <div class="countdown" id="cd${i}"></div>
-   `;
-   container.appendChild(div);
-   createCountdown(p.deadlineText, "cd" + i);
- });
+       `;
+       container.appendChild(div);
+       createCountdown(p.deadlineText, "cd" + i);
+   });
 }
+/* -------------------------------
+  3. Live Countdown Timer
+-------------------------------- */
 function createCountdown(dltxt, id) {
- const target = new Date(dltxt.replace(" ", "T"));
- function tick() {
-   const el = document.getElementById(id);
-   const now = new Date();
-   const diff = target - now;
-   if (diff <= 0) {
-     el.textContent = "🎉 Completed!";
-     return;
+   const target = new Date(dltxt.replace(" ", "T"));
+   function tick() {
+       const el = document.getElementById(id);
+       const now = new Date();
+       const diff = target - now;
+       if (diff <= 0) {
+           el.textContent = "🎉 Completed!";
+           return;
+       }
+       const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+       const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+       const m = Math.floor((diff / (1000 * 60)) % 60);
+       const s = Math.floor((diff / 1000) % 60);
+       el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
    }
-   const d = Math.floor(diff / (1000*60*60*24));
-   const h = Math.floor((diff / (1000*60*60)) % 24);
-   const m = Math.floor((diff / (1000*60)) % 60);
-   const s = Math.floor((diff / 1000) % 60);
-   el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
- }
- tick();
- setInterval(tick, 1000);
+   tick();
+   setInterval(tick, 1000);
 }
+// Start loading
 loadProjects();
 </script>
 </body>
