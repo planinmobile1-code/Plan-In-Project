@@ -1,66 +1,50 @@
 [
   {
-    "name": "新鴻基ICC售樓廠(WWA25) 起貨倒數",
-    "deadline": "2026-01-18T20:00:00"
+    "team": "PD1",
+    "name": "Office Fitout Phase 1",
+    "manager": "Eric Wan",
+    "secretary": "May Lam",
+    "start": "2024-11-01T09:00:00",
+    "deadline": "2025-03-01T18:00:00"
   },
   {
-    "name": "華潤 Silvercord Sales Gallery 起貨倒數",
-    "deadline": "2026-04-13T21:00:00"
+    "team": "PD1",
+    "name": "Reception Upgrade",
+    "manager": "Wai Leung",
+    "secretary": "Anna Ho",
+    "start": "2025-01-10T09:00:00",
+    "deadline": "2025-02-20T17:00:00"
   },
   {
-    "name": "Project C",
-    "deadline": "2026-07-13T19:00:00"
+    "team": "PD2",
+    "name": "Data Centre Cabling",
+    "manager": "Harley Lau",
+    "secretary": "Jason Ng",
+    "start": "2024-12-01T08:00:00",
+    "deadline": "2025-01-25T18:00:00"
   },
   {
-    "name": "Project D",
-    "deadline": "2026-07-13T19:00:00"
+    "team": "PD2",
+    "name": "IT Racking Installation",
+    "manager": "Harley Lau",
+    "secretary": "Grace Cheung",
+    "start": "2025-02-01T09:00:00",
+    "deadline": "2025-04-10T17:00:00"
   },
   {
-    "name": "Project E",
-    "deadline": "2026-07-13T19:00:00"
+    "team": "PD3",
+    "name": "Facade Maintenance",
+    "manager": "Sherman Choi",
+    "secretary": "Lucy Lam",
+    "start": "2024-09-15T09:00:00",
+    "deadline": "2024-12-20T17:00:00"
   },
   {
-    "name": "Project F",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project G",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project H",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project I",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project J",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project K",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project L",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project M",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project N",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project O",
-    "deadline": "2026-07-13T19:00:00"
-  },
-  {
-    "name": "Project P",
-    "deadline": "2026-07-13T19:00:00"
+    "team": "PD3",
+    "name": "HVAC Quarterly Overhaul",
+    "manager": "Sherman Choi",
+    "secretary": "Tommy Chan",
+    "start": "2025-03-01T09:00:00",
+    "deadline": "2025-06-01T17:00:00"
   }
 ]

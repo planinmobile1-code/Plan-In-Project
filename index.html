@@ -1,77 +1,387 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Project Countdown Board</title>
-<style>
-   body {
-     font-family: Arial, sans-serif;
-     margin: 40px;
-   }
-   h1 {
-     text-align: center;
-   }
-   .project {
-     border: 1px solid #ccc;
-     padding: 20px;
-     margin: 20px auto;
-     width: 800px;
-     border-radius: 8px;
-     box-shadow: 0 0 8px #eee;
-     text-align: center;
-   }
-   .countdown {
-     font-size: 24px;
-     font-weight: bold;
-     margin-top: 10px;
-     text-align: center;
-   }
-</style>
+  <meta charset="UTF-8" />
+  <title>Project Countdown Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --card-bg: #fff;
+      --bg: #f6f7fb;
+      --text: #222;
+      --muted: #666;
+      --blue: #2b7cff;
+      --orange: #ff8a00;
+      --red: #e84141;
+      --green: #2ecc71;
+    }
+    body{
+      margin:0;
+      font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:var(--bg);
+      color:var(--text);
+      padding:24px;
+    }
+    h1{
+      text-align:center;
+      margin:0 0 18px;
+      font-size:20px;
+    }
+    .board{
+      max-width:1100px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns: repeat(auto-fit,minmax(320px,1fr));
+      gap:18px;
+    }
+    .team-card{
+      background:var(--card-bg);
+      border-radius:10px;
+      padding:14px;
+      box-shadow:0 6px 18px rgba(20,20,50,0.06);
+    }
+    .team-title{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .team-title h2{ margin:0; font-size:16px; }
+    .project{
+      border-radius:8px;
+      padding:12px;
+      margin-bottom:12px;
+      background:linear-gradient(180deg,#fff,#fbfdff);
+      box-shadow: 0 2px 6px rgba(20,20,50,0.03);
+      border:1px solid rgba(0,0,0,0.04);
+    }
+    .project-header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .project-name{ font-weight:600; font-size:15px; }
+    .meta{ font-size:12px; color:var(--muted); }
+    .dates{ font-size:12px; color:var(--muted); margin-top:6px; display:flex; gap:10px; flex-wrap:wrap; }
+    .progress-wrap{ margin-top:10px; display:flex; gap:10px; align-items:center; }
+    .progress-bar{
+      height:12px;
+      background:#eee;
+      border-radius:8px;
+      overflow:hidden;
+      flex:1;
+    }
+    .progress-fill{
+      height:100%;
+      width:0%;
+      background:var(--blue);
+      transition:width 500ms linear,background 300ms;
+    }
+    .percent{ font-size:12px; min-width:56px; text-align:right; color:var(--muted); }
+    .countdown{
+      margin-top:8px;
+      font-weight:700;
+      font-size:13px;
+    }
+    .tag{
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      color:#fff;
+      background:var(--blue);
+    }
+    .overdue {
+      background: linear-gradient(90deg,var(--red),#ff6b6b);
+      color:#fff;
+    }
+    .urgent {
+      background: linear-gradient(90deg,var(--orange),#ffb37a);
+      color:#fff;
+    }
+    .normal {
+      background: linear-gradient(90deg,var(--blue),#66a3ff);
+      color:#fff;
+    }
+    .small { font-size:12px; color:var(--muted); margin-top:6px; }
+    footer{ text-align:center; margin-top:18px; font-size:13px; color:var(--muted); }
+    @media (max-width:420px){
+      body { padding:12px; }
+    }
+  </style>
 </head>
 <body>
-<h1>📅 Project Countdown Dashboard</h1>
-<div id="container"></div>
+  <h1>📅 Project Dashboard — PD1 / PD2 / PD3</h1>
+
+  <div id="board" class="board" aria-live="polite"></div>
+
+  <footer>Auto-sorted by urgency • Refreshes on load</footer>
+
 <script>
- async function loadProjects() {
-   try {
-     const response = await fetch('projects.json?v=' + Date.now());
-     // 加 timestamp 防止 GitHub Cache
-     const projects = await response.json();
-     const container = document.getElementById('container');
-     projects.forEach((proj, index) => {
-       const div = document.createElement('div');
-       div.className = 'project';
-       div.innerHTML = `
-<h2>${proj.name}</h2>
-<div class="countdown" id="cd${index}"></div>
-       `;
-       container.appendChild(div);
-       createCountdown(proj.deadline, `cd${index}`);
-     });
-   } catch (e) {
-     console.error("Load JSON failed:", e);
-   }
- }
- function createCountdown(deadline, elementId) {
-   const targetDate = new Date(deadline);
-   function update() {
-     const now = new Date();
-     const diff = targetDate - now;
-     const el = document.getElementById(elementId);
-     if (diff <= 0) {
-       el.innerHTML = "🎉 Completed!";
-       return;
-     }
-     const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-     const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-     const m = Math.floor((diff / (1000 * 60)) % 60);
-     const s = Math.floor((diff / 1000) % 60);
-     el.innerHTML = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
-   }
-   update();
-   setInterval(update, 1000);
- }
- loadProjects();
+(async function(){
+  // Config: color thresholds (days)
+  const THRESHOLD_URGENT_DAYS = 30;
+
+  // fetch external JSON (cache-bust)
+  async function fetchProjects(){
+    const url = 'projects.json?v=' + Date.now();
+    const resp = await fetch(url, {cache: 'no-store'});
+    if(!resp.ok) throw new Error('Fetch projects.json failed: ' + resp.status);
+    return resp.json();
+  }
+
+  // helper: format date
+  function fmt(d){
+    const dt = new Date(d);
+    if(isNaN(dt)) return '-';
+    return dt.toLocaleString(undefined, {year:'numeric',month:'short',day:'numeric', hour:'2-digit', minute:'2-digit'});
+  }
+
+  // calculate days remaining (can be negative)
+  function daysRemaining(deadline){
+    return Math.floor( (new Date(deadline) - new Date()) / (1000*60*60*24) );
+  }
+
+  // progress fraction 0..1 based on start->deadline
+  function progressFraction(start, deadline){
+    const s = new Date(start);
+    const e = new Date(deadline);
+    const now = new Date();
+    const total = e - s;
+    if(total <= 0) return 1;
+    const passed = now - s;
+    return Math.min(Math.max(passed / total, 0), 1);
+  }
+
+  // determine status class and label
+  function getStatus(deadline){
+    const days = daysRemaining(deadline);
+    if(days < 0) return {cls:'overdue', label:'OVERDUE', days};
+    if(days <= THRESHOLD_URGENT_DAYS) return {cls:'urgent', label: days + ' days left', days};
+    return {cls:'normal', label: days + ' days left', days};
+  }
+
+  // sort projects: most urgent (smallest daysRemaining) first, overdue first
+  function sortProjects(a,b){
+    const da = daysRemaining(a.deadline);
+    const db = daysRemaining(b.deadline);
+    if(da === db) return new Date(a.deadline) - new Date(b.deadline);
+    return da - db; // smaller (more urgent) first
+  }
+
+  // group by team (ensure 3 teams PD1,PD2,PD3 shown even if empty)
+  function groupByTeam(list){
+    const teams = {};
+    list.forEach(p => {
+      const t = p.team || 'Unassigned';
+      if(!teams[t]) teams[t] = [];
+      teams[t].push(p);
+    });
+    // ensure keys order PD1,PD2,PD3 then rest
+    const ordered = {};
+    ['PD1','PD2','PD3'].forEach(k => { if(teams[k]) ordered[k]=teams[k]; else ordered[k]=[]; });
+    Object.keys(teams).forEach(k => {
+      if(!ordered[k]) ordered[k] = teams[k];
+    });
+    return ordered;
+  }
+
+  // render
+  function renderBoard(grouped){
+    const board = document.getElementById('board');
+    board.innerHTML = '';
+    for(const [team, projects] of Object.entries(grouped)){
+      const card = document.createElement('section');
+      card.className = 'team-card';
+      const title = document.createElement('div');
+      title.className = 'team-title';
+      const h2 = document.createElement('h2');
+      h2.textContent = team;
+      const count = document.createElement('div');
+      count.className = 'meta';
+      count.textContent = projects.length + ' project(s)';
+      title.appendChild(h2);
+      title.appendChild(count);
+      card.appendChild(title);
+
+      // sort team projects
+      projects.sort(sortProjects);
+
+      if(projects.length === 0){
+        const empty = document.createElement('div');
+        empty.className = 'small';
+        empty.textContent = 'No projects';
+        card.appendChild(empty);
+      } else {
+        projects.forEach((p, idx) => {
+          const proj = document.createElement('div');
+          proj.className = 'project';
+
+          const header = document.createElement('div');
+          header.className = 'project-header';
+
+          const left = document.createElement('div');
+          left.style.flex = '1';
+          const name = document.createElement('div');
+          name.className = 'project-name';
+          name.textContent = p.name;
+          left.appendChild(name);
+
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          meta.innerHTML = PM: ${p.manager || '-'} &nbsp; • &nbsp; PS: ${p.secretary || '-'};
+          left.appendChild(meta);
+
+          const statusObj = getStatus(p.deadline);
+          const tag = document.createElement('div');
+          tag.className = 'tag ' + statusObj.cls;
+          tag.textContent = statusObj.label;
+
+          header.appendChild(left);
+          header.appendChild(tag);
+          proj.appendChild(header);
+
+          const dt = document.createElement('div');
+          dt.className = 'dates';
+          dt.innerHTML = <div>Start: ${fmt(p.start)}</div><div>Deadline: ${fmt(p.deadline)}</div>;
+          proj.appendChild(dt);
+
+          // progress
+          const progressWrap = document.createElement('div');
+          progressWrap.className = 'progress-wrap';
+          const progressBar = document.createElement('div');
+          progressBar.className = 'progress-bar';
+          const fill = document.createElement('div');
+          fill.className = 'progress-fill';
+          const frac = progressFraction(p.start, p.deadline);
+          fill.style.width = Math.round(frac * 100) + '%';
+
+          // set color by status
+          if(statusObj.cls === 'overdue'){
+            fill.style.background = 'linear-gradient(90deg,var(--red),#ff6b6b)';
+          } else if(statusObj.cls === 'urgent'){
+            fill.style.background = 'linear-gradient(90deg,var(--orange),#ffb37a)';
+          } else {
+            fill.style.background = 'linear-gradient(90deg,var(--blue),#66a3ff)';
+          }
+
+          progressBar.appendChild(fill);
+          const perc = document.createElement('div');
+          perc.className = 'percent';
+          perc.textContent = Math.round(frac * 100) + '%';
+
+          progressWrap.appendChild(progressBar);
+          progressWrap.appendChild(perc);
+          proj.appendChild(progressWrap);
+
+          // countdown text
+          const cd = document.createElement('div');
+          cd.className = 'countdown';
+          const days = Math.floor( (new Date(p.deadline) - new Date()) / (1000*60*60*24) );
+          if(days < 0){
+            cd.textContent = OVERDUE by ${Math.abs(days)} day(s);
+            cd.style.color = 'var(--red)';
+          } else {
+            // also show HH:MM:SS left
+            const diff = new Date(p.deadline) - new Date();
+            const d = Math.floor(diff / (1000*60*60*24));
+            const h = Math.floor((diff / (1000*60*60)) % 24);
+            const m = Math.floor((diff / (1000*60)) % 60);
+            const s = Math.floor((diff / 1000) % 60);
+            cd.textContent = ${d}d ${h}h ${m}m ${s}s;
+          }
+          proj.appendChild(cd);
+
+          card.appendChild(proj);
+        });
+      }
+
+      board.appendChild(card);
+    }
+  }
+
+  // auto-update countdown every second (only the countdown text and progress percent)
+  function startTicker(projects){
+    function tick(){
+      // update only countdown texts and progress
+      document.querySelectorAll('.team-card').forEach(card => {
+        card.querySelectorAll('.project').forEach(projEl => {
+          const nameEl = projEl.querySelector('.project-name');
+          const name = nameEl ? nameEl.textContent : null;
+          if(!name) return;
+          // find project data by name (assumes unique name)
+          const data = projects.find(p => p.name === name);
+          if(!data) return;
+
+          // update progress
+          const frac = progressFraction(data.start, data.deadline);
+          const fill = projEl.querySelector('.progress-fill');
+          const percent = projEl.querySelector('.percent');
+          if(fill) fill.style.width = Math.round(frac*100) + '%';
+          if(percent) percent.textContent = Math.round(frac*100) + '%';
+
+          // update countdown
+          const cd = projEl.querySelector('.countdown');
+          const diff = new Date(data.deadline) - new Date();
+          if(!cd) return;
+          if(diff <= 0){
+            const daysOver = Math.abs(Math.floor(diff / (1000*60*60*24)));
+            cd.textContent = OVERDUE by ${daysOver} day(s);
+            cd.style.color = 'var(--red)';
+            // set tag to overdue
+            const tag = projEl.querySelector('.tag');
+            if(tag){ tag.className = 'tag overdue'; tag.textContent = 'OVERDUE'; }
+            // color progress fill red
+            if(fill) fill.style.background = 'linear-gradient(90deg,var(--red),#ff6b6b)';
+          } else {
+            const d = Math.floor(diff / (1000*60*60*24));
+            const h = Math.floor((diff / (1000*60*60)) % 24);
+            const m = Math.floor((diff / (1000*60)) % 60);
+            const s = Math.floor((diff / 1000) % 60);
+            cd.textContent = ${d}d ${h}h ${m}m ${s}s;
+            // update urgency tag if crossing threshold
+            const daysLeft = Math.floor(diff / (1000*60*60*24));
+            const tag = projEl.querySelector('.tag');
+            if(tag){
+              if(daysLeft <= 0){
+                tag.className = 'tag overdue';
+                tag.textContent = 'OVERDUE';
+              } else if(daysLeft <= ${THRESHOLD_URGENT_DAYS}){
+                tag.className = 'tag urgent';
+                tag.textContent = daysLeft + ' days left';
+                if(fill) fill.style.background = 'linear-gradient(90deg,var(--orange),#ffb37a)';
+              } else {
+                tag.className = 'tag normal';
+                tag.textContent = daysLeft + ' days left';
+                if(fill) fill.style.background = 'linear-gradient(90deg,var(--blue),#66a3ff)';
+              }
+            }
+          }
+        });
+      });
+    }
+    tick();
+    return setInterval(tick, 1000);
+  }
+
+  // main
+  try {
+    const projects = await fetchProjects();
+    // basic validation: expect array
+    if(!Array.isArray(projects)) throw new Error('projects.json must be an array');
+    // sort globally by urgency
+    projects.sort(sortProjects);
+    const grouped = groupByTeam(projects);
+    renderBoard(grouped);
+    startTicker(projects);
+  } catch (err){
+    console.error(err);
+    const board = document.getElementById('board');
+    board.innerHTML = '<div style="grid-column:1/-1;padding:20px;background:#fff;border-radius:8px;">Error loading projects: '+ (err.message || err) + '</div>';
+  }
+
+})();
 </script>
 </body>
 </html>
