@@ -4,373 +4,125 @@
 <meta charset="UTF-8">
 <title>Project Countdown Dashboard</title>
 <style>
-
 body {
-
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-
   margin: 0;
-
   padding: 0;
-
   background: #f5f7fa;
-
   color: #333;
-
 }
-
 h1 {
-
   text-align: center;
-
   margin-top: 40px;
-
   font-size: 36px;
-
   color: #1f3c88;
-
 }
-
 #container {
-
   max-width: 900px;
-
   margin: 20px auto 60px auto;
-
-}
-
-/* Add Project 區域 */
-
-#addBox {
-
-  width: 900px;
-
-  margin: 20px auto;
-
-  padding: 25px;
-
-  border-radius: 12px;
-
-  background: #ffffff;
-
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-
-}
-
-#addBox h3 {
-
-  margin-top: 0;
-
-  color: #1f3c88;
-
-}
-
-#addBox input, #addBox button {
-
-  padding: 12px;
-
-  margin: 8px 0;
-
-  font-size: 16px;
-
-  border-radius: 6px;
-
-  border: 1px solid #ccc;
-
-}
-
-#addBox input:focus {
-
-  outline: none;
-
-  border-color: #1f3c88;
-
-}
-
-#addBox button {
-
-  background: #1f3c88;
-
-  color: #fff;
-
-  border: none;
-
-  cursor: pointer;
-
-  transition: background 0.3s;
-
-}
-
-#addBox button:hover {
-
-  background: #3b59c5;
-
 }
 
 /* Project 卡片 */
-
 .project {
-
   background: linear-gradient(135deg, #ffffff 0%, #e9f0ff 100%);
-
   border-radius: 12px;
-
   padding: 20px;
-
   margin: 20px auto;
-
   width: 900px;
-
   box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-
   text-align: center;
-
-  position: relative;
-
   transition: transform 0.2s;
-
 }
-
 .project:hover {
-
   transform: translateY(-4px);
-
 }
-
 .project h2 {
-
   margin: 0;
-
   color: #1f3c88;
-
 }
-
 .countdown {
-
   font-size: 22px;
-
   font-weight: bold;
-
   margin-top: 10px;
-
-}
-
-/* 按鈕 */
-
-.project button {
-
-  margin: 8px 6px 0 6px;
-
-  padding: 8px 16px;
-
-  font-size: 14px;
-
-  border: none;
-
-  border-radius: 6px;
-
-  cursor: pointer;
-
-  transition: all 0.3s;
-
-}
-
-.deleteBtn {
-
-  background: #ff4c4c;
-
-  color: #fff;
-
-}
-
-.deleteBtn:hover {
-
-  background: #ff1a1a;
-
-}
-
-.editBtn {
-
-  background: #1f3c88;
-
-  color: #fff;
-
-}
-
-.editBtn:hover {
-
-  background: #3b59c5;
-
 }
 </style>
 </head>
 <body>
+
 <h1>📅 Project Countdown Dashboard</h1>
-<div id="addBox">
-<h3>➕ 新增 Project</h3>
-<input id="pName" type="text" placeholder="Project 名稱">
-<input id="pDeadline" type="datetime-local">
-<button onclick="addProject()">加入 Project</button>
-</div>
 <div id="container"></div>
+
 <script>
+// 你的 pubhtml 網址
+const sheetURL = "https://docs.google.com/spreadsheets/u/2/d/e/2PACX-1vSDMRhc5hutkg0TtjTLrI2U7u8o9LqJWzGMHa9ksbWub6oMI9q4cDmpz77Jgf8q6flM1hJfZ2rQlBxv/pubhtml";
 
-// ------------------- Load projects from localStorage -------------------
+async function loadProjects() {
+  try {
+    const res = await fetch(sheetURL);
+    const text = await res.text();
 
-function loadProjects() {
+    // 從 HTML 中抓出 table
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(text, "text/html");
+    const table = doc.querySelector("table");
+    if (!table) {
+      console.error("未找到表格");
+      return;
+    }
 
-  const projects = JSON.parse(localStorage.getItem("projects")) || [];
+    const rows = Array.from(table.querySelectorAll("tr")).slice(1); // 跳過標題列
+    const projects = rows.map(row => {
+      const cells = row.querySelectorAll("td");
+      return {
+        name: cells[0]?.innerText.trim() || "",
+        deadline: cells[1]?.innerText.trim() || ""
+      };
+    });
 
-  renderProjects(projects);
-
+    renderProjects(projects);
+  } catch (e) {
+    console.error("讀取 Google Sheet 失敗", e);
+  }
 }
-
-// ------------------- Render Project List -------------------
 
 function renderProjects(projects) {
-
   const container = document.getElementById("container");
-
   container.innerHTML = "";
-
   projects.forEach((proj, index) => {
-
     const div = document.createElement("div");
-
     div.className = "project";
-
     div.innerHTML = `
-<h2>${proj.name}</h2>
-<div class="countdown" id="cd${index}"></div>
-<button class="editBtn" onclick="editProject(${index})">✏️ 編輯</button>
-<button class="deleteBtn" onclick="deleteProject(${index})">🗑 刪除</button>
-
+      <h2>${proj.name}</h2>
+      <div class="countdown" id="cd${index}"></div>
     `;
-
     container.appendChild(div);
-
-    createCountdown(proj.deadline, `cd${index}`);
-
+    createCountdown(proj.deadline, cd${index});
   });
-
 }
-
-// ------------------- Add Project -------------------
-
-function addProject() {
-
-  const name = document.getElementById("pName").value.trim();
-
-  const deadline = document.getElementById("pDeadline").value;
-
-  if (!name || !deadline) { 
-
-    alert("請輸入 Project 名稱和 Deadline"); 
-
-    return; 
-
-  }
-
-  const finalDeadline = deadline.length === 16 ? deadline + ":00" : deadline;
-
-  const projects = JSON.parse(localStorage.getItem("projects")) || [];
-
-  projects.push({ name: name, deadline: finalDeadline });
-
-  localStorage.setItem("projects", JSON.stringify(projects));
-
-  renderProjects(projects);
-
-  document.getElementById("pName").value = "";
-
-  document.getElementById("pDeadline").value = "";
-
-}
-
-// ------------------- Delete Project -------------------
-
-function deleteProject(index) {
-
-  if (!confirm("確認刪除此 Project 嗎？")) return;
-
-  const projects = JSON.parse(localStorage.getItem("projects")) || [];
-
-  projects.splice(index, 1);
-
-  localStorage.setItem("projects", JSON.stringify(projects));
-
-  renderProjects(projects);
-
-}
-
-// ------------------- Edit Project -------------------
-
-function editProject(index) {
-
-  const projects = JSON.parse(localStorage.getItem("projects")) || [];
-
-  const proj = projects[index];
-
-  const newName = prompt("修改 Project 名稱", proj.name);
-
-  if (newName === null) return; // cancel
-
-  const newDeadline = prompt("修改截止日期（YYYY-MM-DDTHH:MM）", proj.deadline.slice(0,16));
-
-  if (newDeadline === null) return;
-
-  proj.name = newName.trim() || proj.name;
-
-  proj.deadline = newDeadline.length === 16 ? newDeadline + ":00" : newDeadline;
-
-  projects[index] = proj;
-
-  localStorage.setItem("projects", JSON.stringify(projects));
-
-  renderProjects(projects);
-
-}
-
-// ------------------- Countdown -------------------
 
 function createCountdown(deadline, elementId) {
-
   const targetDate = new Date(deadline);
 
   function update() {
-
     const now = new Date();
-
     const diff = targetDate - now;
-
     const el = document.getElementById(elementId);
-
     if (!el) return;
-
     if (diff <= 0) { el.innerHTML = "🎉 Completed!"; return; }
 
     const d = Math.floor(diff / (1000*60*60*24));
-
     const h = Math.floor((diff / (1000*60*60)) % 24);
-
     const m = Math.floor((diff / (1000*60)) % 60);
-
     const s = Math.floor((diff/1000)%60);
-
-    el.innerHTML = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
-
+    el.innerHTML = ${d} Days ${h} Hours ${m} Minutes ${s} Seconds;
   }
 
   update();
-
-  setInterval(update,1000);
-
+  setInterval(update, 1000);
 }
 
-// ------------------- Init -------------------
-
+// 初始化
 loadProjects();
 </script>
 </body>
 </html>
- 
