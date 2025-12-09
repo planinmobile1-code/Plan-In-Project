@@ -28,29 +28,33 @@ body {
 <h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
 <script>
-const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json";
+const jsonURL =
+"https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json";
 /* -------------------------------
-  1. Load Google Sheet Data (Auto JSON Extract)
+  1. Load Google Sheet JSON
 -------------------------------- */
 async function loadProjects() {
    try {
        const res = await fetch(jsonURL);
        let text = await res.text();
-       // 🔥 自動搵 JSON 開頭 `{` 同結尾 `}`
        const start = text.indexOf("{");
        const end = text.lastIndexOf("}") + 1;
-       if (start === -1 || end === -1) {
-           throw new Error("JSON not found in Google Sheets response");
-       }
-       // 🔥 提取乾淨 JSON
        const cleanText = text.substring(start, end);
        const json = JSON.parse(cleanText);
        const rows = json.table.rows;
+       // ⚠ Column mapping after adding Team:
+       // A = Project Name
+       // B = Team
+       // C = Deadline
+       // D = DeadlineText
+       // E = Project Manager
+       // F = Project Secretary
        const projects = rows.map(r => ({
            name: r.c[0]?.v || "",
-           deadlineText: r.c[2]?.v || "",
-           manager: r.c[3]?.v || "",
-           sec: r.c[4]?.v || ""
+           team: r.c[1]?.v || "",
+           deadlineText: r.c[3]?.v || "",
+           manager: r.c[4]?.v || "",
+           sec: r.c[5]?.v || ""
        }));
        render(projects);
    } catch (err) {
@@ -58,17 +62,18 @@ async function loadProjects() {
    }
 }
 /* -------------------------------
-  2. Render Project Cards
+  2. Render each project card
 -------------------------------- */
 function render(list) {
    const container = document.getElementById("container");
    container.innerHTML = "";
    list.forEach((p, i) => {
-       if (!p.name) return; // Skip empty rows
+       if (!p.name) return;
        const div = document.createElement("div");
        div.className = "project";
        div.innerHTML = `
 <h2>${p.name}</h2>
+<p><b>Team:</b> ${p.team}</p>
 <p><b>Project Manager:</b> ${p.manager}</p>
 <p><b>Project Secretary:</b> ${p.sec}</p>
 <div class="countdown" id="cd${i}"></div>
@@ -78,7 +83,7 @@ function render(list) {
    });
 }
 /* -------------------------------
-  3. Live Countdown Timer
+  3. Countdown logic
 -------------------------------- */
 function createCountdown(dltxt, id) {
    const target = new Date(dltxt.replace(" ", "T"));
@@ -99,7 +104,6 @@ function createCountdown(dltxt, id) {
    tick();
    setInterval(tick, 1000);
 }
-// Start loading
 loadProjects();
 </script>
 </body>
