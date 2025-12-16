@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
-<title>Project Countdown Dashboard</title>
+<title>Project Gantt Dashboard</title>
 <style>
 body {
  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -24,15 +24,14 @@ h2 {
  padding-bottom: 4px;
 }
 .team-container {
- display: flex;
- flex-direction: column;
- gap: 10px;
+ margin-bottom: 40px;
 }
 .project-info {
  background: white;
  padding: 10px 15px;
  border-radius: 8px;
  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+ margin-bottom: 6px;
 }
 .project-info h3 {
  margin: 0 0 6px 0;
@@ -50,45 +49,47 @@ h2 {
  color: #d32f2f;
  margin-top: 4px;
 }
-.month-bar {
- position: relative;
- width: 100%;
- height: 30px;
- background: #eee;
- border-radius: 6px;
- margin-top: 6px;
-}
-.month-labels {
+/* 甘特圖 */
+.month-axis {
  display: flex;
  justify-content: space-between;
  font-size: 0.8em;
- color: #555;
  margin-bottom: 4px;
+ color: #555;
 }
-.project-bar {
+.gantt-container {
+ position: relative;
+ height: 25px;
+ background: #eee;
+ border-radius: 6px;
+ margin-bottom: 20px;
+}
+.gantt-bar {
  position: absolute;
  height: 20px;
- border-radius: 6px;
- background-color: #4caf50;
- opacity: 0.8;
- top: 5px;
+ border-radius: 4px;
+ top: 2px;
+ opacity: 0.85;
 }
 </style>
 </head>
 <body>
-<h1>📅 Project Countdown Dashboard</h1>
+<h1>📅 Project Gantt Dashboard</h1>
 <h2>PD1: Wai Leung</h2>
-<div class="team-container" id="team-PD1"></div>
-<div class="month-labels" id="labels-PD1"></div>
-<div class="month-bar" id="bar-PD1"></div>
+<div class="team-container" id="team-PD1">
+<div class="month-axis" id="labels-PD1"></div>
+<div class="gantt-container" id="bar-PD1"></div>
+</div>
 <h2>PD2: Harley Lau</h2>
-<div class="team-container" id="team-PD2"></div>
-<div class="month-labels" id="labels-PD2"></div>
-<div class="month-bar" id="bar-PD2"></div>
+<div class="team-container" id="team-PD2">
+<div class="month-axis" id="labels-PD2"></div>
+<div class="gantt-container" id="bar-PD2"></div>
+</div>
 <h2>PD3: Sherman Choi</h2>
-<div class="team-container" id="team-PD3"></div>
-<div class="month-labels" id="labels-PD3"></div>
-<div class="month-bar" id="bar-PD3"></div>
+<div class="team-container" id="team-PD3">
+<div class="month-axis" id="labels-PD3"></div>
+<div class="gantt-container" id="bar-PD3"></div>
+</div>
 <script>
 const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
 const teamOrder = ["PD1","PD2","PD3"];
@@ -124,7 +125,7 @@ function renderProjects(projects){
  const now = new Date();
  const months = Array.from({length:12},(_,i)=>new Date(now.getFullYear(),now.getMonth()+i,1));
  const monthNames = months.map(m => m.toLocaleString('en', {month:'short'}));
- // 初始化每個 Team 的月份文字
+ // 初始化月份軸
  teamOrder.forEach(team=>{
    const labelEl = document.getElementById(`labels-${team}`);
    labelEl.innerHTML = monthNames.map(m=>`<div>${m}</div>`).join("");
@@ -145,9 +146,9 @@ function renderProjects(projects){
 <p><b>Tentative Possession:</b> ${p.possession}</p>
 <p><b>Tentative Completion:</b> ${p.completion}</p>
    `;
-   container.appendChild(div);
+   container.insertBefore(div, barContainer);
    createCountdown(p.deadlineText,`cd${i}`);
-   createProjectBar(p.possession,p.completion,barContainer,teamColors[teamKey]);
+   createGanttBar(p.possession,p.completion,barContainer,teamColors[teamKey]);
  });
 }
 function createCountdown(dltxt,id){
@@ -166,7 +167,7 @@ function createCountdown(dltxt,id){
  tick();
  setInterval(tick,1000);
 }
-function createProjectBar(posTxt, compTxt,barContainer,color){
+function createGanttBar(posTxt, compTxt,barContainer,color){
  if(!posTxt || !compTxt) return;
  const now = new Date();
  const months = Array.from({length:12},(_,i)=>new Date(now.getFullYear(),now.getMonth()+i,1));
@@ -181,7 +182,7 @@ function createProjectBar(posTxt, compTxt,barContainer,color){
  const leftPercent = (startIndex/totalMonths)*100;
  const widthPercent = ((endIndex-startIndex+1)/totalMonths)*100;
  const bar = document.createElement("div");
- bar.className="project-bar";
+ bar.className="gantt-bar";
  bar.style.left = leftPercent+"%";
  bar.style.width = widthPercent+"%";
  bar.style.backgroundColor = color;
