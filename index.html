@@ -2,127 +2,43 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Project Countdown Dashboard</title>
-<style>
-body {
-   font-family: Arial, sans-serif;
-   padding: 20px;
-   background: #f5f6f8;
-}
-.team-group {
-   margin-top: 40px;
-}
-.team-title {
-   font-size: 26px;
-   font-weight: bold;
-   padding: 12px 20px;
-   border-radius: 8px;
-   color: #fff;
-   margin-bottom: 15px;
-}
-.project {
-   background: #fff;
-   padding: 18px 20px;
-   margin: 12px auto;
-   max-width: 820px;
-   border-radius: 10px;
-   box-shadow: 0 4px 14px rgba(0,0,0,0.08);
-}
-.countdown {
-   margin-top: 10px;
-   font-size: 20px;
-   font-weight: bold;
-}
-</style>
+<title>Debug Google Sheet</title>
 </head>
 <body>
-<h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
-<div id="container"></div>
+<h1>Google Sheet Debug</h1>
+<pre id="output">Loading...</pre>
 <script>
 const jsonURL =
 "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
-/* 固定 Team 排序 + 顏色 */
-const TEAM_ORDER = ["PD1", "PD2", "PD3"];
-const TEAM_INFO = {
-   PD1: { director: "Wai Leung", color: "#1976D2" },
-   PD2: { director: "Harley Lau", color: "#2E7D32" },
-   PD3: { director: "Sherman Choi", color: "#D84315" }
-};
-async function loadProjects() {
-   try {
-       const res = await fetch(jsonURL);
-       const text = await res.text();
-       // 自動抽 JSON（防 Google wrapper 變動）
-       const start = text.indexOf("{");
-       const end = text.lastIndexOf("}") + 1;
-       const json = JSON.parse(text.substring(start, end));
-       if (!json.table || !json.table.rows) {
-           console.warn("No rows found in Google Sheet");
-           return;
-       }
-       const rows = json.table.rows;
-       const projects = rows.map(r => ({
-           name: r.c[0]?.v || "",
-           team: r.c[1]?.v || "",
-           deadlineText: r.c[3]?.v || "",
-           manager: r.c[4]?.v || "",
-           sec: r.c[5]?.v || ""
-       }));
-       renderGrouped(projects);
-   } catch (e) {
-       console.error("Load error:", e);
+async function test() {
+ try {
+   const res = await fetch(jsonURL);
+   const text = await res.text();
+   // 顯示原始回應頭 300 字
+   console.log("RAW:", text.slice(0, 300));
+   const start = text.indexOf("{");
+   const end = text.lastIndexOf("}") + 1;
+   if (start === -1 || end === -1) {
+     document.getElementById("output").textContent =
+       "❌ 找不到 JSON {} 結構";
+     return;
    }
-}
-function renderGrouped(list) {
-   const container = document.getElementById("container");
-   container.innerHTML = "";
-   TEAM_ORDER.forEach(team => {
-       const teamProjects = list.filter(p => p.team === team && p.name);
-       if (teamProjects.length === 0) return;
-       const info = TEAM_INFO[team];
-       const group = document.createElement("div");
-       group.className = "team-group";
-       group.innerHTML = `
-<div class="team-title" style="background:${info.color}">
-               ${team} – ${info.director}
-</div>
-       `;
-       teamProjects.forEach((p, i) => {
-           const card = document.createElement("div");
-           card.className = "project";
-           const id = `${team}_${i}`;
-           card.innerHTML = `
-<h2>${p.name}</h2>
-<p><b>Project Manager:</b> ${p.manager}</p>
-<p><b>Project Secretary:</b> ${p.sec}</p>
-<div class="countdown" id="${id}"></div>
-           `;
-           group.appendChild(card);
-           createCountdown(p.deadlineText, id);
-       });
-       container.appendChild(group);
-   });
-}
-function createCountdown(text, id) {
-   const target = new Date(text.replace(" ", "T"));
-   function tick() {
-       const el = document.getElementById(id);
-       if (!el) return;
-       const diff = target - new Date();
-       if (diff <= 0) {
-           el.textContent = "🎉 Completed!";
-           return;
-       }
-       const d = Math.floor(diff / 86400000);
-       const h = Math.floor((diff / 3600000) % 24);
-       const m = Math.floor((diff / 60000) % 60);
-       const s = Math.floor((diff / 1000) % 60);
-       el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
+   const json = JSON.parse(text.substring(start, end));
+   if (!json.table || !json.table.rows) {
+     document.getElementById("output").textContent =
+       "❌ json.table.rows 不存在\n\n" +
+       JSON.stringify(json, null, 2);
+     return;
    }
-   tick();
-   setInterval(tick, 1000);
+   document.getElementById("output").textContent =
+     "✅ 成功讀到 rows: " + json.table.rows.length + "\n\n" +
+     JSON.stringify(json.table.rows, null, 2);
+ } catch (e) {
+   document.getElementById("output").textContent =
+     "❌ Error:\n" + e;
+ }
 }
-loadProjects();
+test();
 </script>
 </body>
 </html>
