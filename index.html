@@ -5,43 +5,64 @@
 <title>Project Countdown Dashboard</title>
 <style>
 body {
- font-family: Arial, sans-serif;
- padding: 20px;
- background: #f3f4f6;
+ font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+ padding: 40px 20px;
+ background: #eef2f7;
+ color: #333;
 }
 h1 {
  text-align: center;
+ margin-bottom: 30px;
+ font-size: 2em;
+ color: #222;
 }
 .project {
  display: flex;
  justify-content: space-between;
  align-items: flex-start;
  background: white;
- padding: 20px;
+ padding: 20px 30px;
  margin: 20px auto;
- max-width: 900px;
- border-radius: 10px;
- box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+ max-width: 1000px;
+ border-radius: 12px;
+ box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+ gap: 20px;
 }
 .project-info {
  flex: 1;
+ line-height: 1.6;
+}
+.project-info h2 {
+ margin-bottom: 10px;
+ font-size: 1.5em;
+ color: #333;
+}
+.project-info p {
+ margin: 4px 0;
+ color: #555;
 }
 .countdown {
  margin-top: 10px;
  font-size: 20px;
  font-weight: bold;
+ color: #d32f2f;
 }
 .calendar {
  margin-left: 20px;
+ display: flex;
+ flex-wrap: wrap;
+ justify-content: flex-start;
+ max-width: 280px;
 }
 .month {
- display: inline-block;
- width: 70px;
- padding: 6px;
- margin: 2px;
+ flex: 0 0 auto;
+ margin: 4px;
+ padding: 6px 8px;
+ font-size: 0.85em;
+ background: #f0f0f0;
+ border-radius: 6px;
  text-align: center;
- border-radius: 4px;
- background: #eee;
+ transition: background 0.3s;
 }
 .month.highlight {
  background: #4caf50;
