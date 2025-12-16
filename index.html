@@ -1,140 +1,153 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
-<title>Project Countdown Dashboard</title>
+<title>Project Calendar Dashboard</title>
 <style>
 body {
  font-family: Arial, sans-serif;
+ padding: 20px;
  background: #f3f4f6;
- padding: 30px;
 }
 h1 {
  text-align: center;
- margin-bottom: 30px;
 }
-.team {
- margin-bottom: 40px;
-}
-.team h2 {
- background: #111827;
- color: #fff;
- padding: 12px 20px;
- border-radius: 8px;
+.project-container {
+ display: flex;
+ flex-direction: column;
+ gap: 30px;
 }
 .project {
- background: #fff;
- margin-top: 15px;
+ display: flex;
+ background: white;
  padding: 20px;
  border-radius: 10px;
  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+ gap: 20px;
 }
-.project h3 {
- margin: 0 0 10px;
+.project-info {
+ min-width: 200px;
 }
-.meta p {
+.project-info p {
  margin: 4px 0;
- color: #374151;
 }
-.countdown {
- margin-top: 12px;
- font-size: 20px;
+.calendar {
+ display: flex;
+ gap: 10px;
+ overflow-x: auto;
+}
+.month {
+ display: grid;
+ grid-template-columns: repeat(7, 24px);
+ gap: 2px;
+}
+.month-title {
+ grid-column: span 7;
+ text-align: center;
+ font-size: 12px;
+ margin-bottom: 2px;
+}
+.day {
+ width: 24px;
+ height: 24px;
+ background: #eee;
+ font-size: 10px;
+ text-align: center;
+ line-height: 24px;
+ border-radius: 4px;
+}
+.day.highlight {
+ background: #4caf50;
+ color: white;
  font-weight: bold;
 }
 </style>
 </head>
 <body>
-<h1>📅 Project Countdown Dashboard</h1>
-<div id="container"></div>
+<h1>📅 Project Calendar Dashboard</h1>
+<div class="project-container" id="container"></div>
 <script>
-const jsonURL =
- "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json";
-async function loadProjects() {
- try {
-   const res = await fetch(jsonURL);
-   const text = await res.text();
-   // Google Sheet JSON 精準裁切
-   const json = JSON.parse(text.substring(47, text.length - 2));
-   const rows = json.table.rows;
-   const projects = rows.map(r => {
-     const c = r.c || [];
-     return {
-       name: c[0]?.v || "",
-       teamRaw: c[1]?.v || "",
-       deadlineText: c[2]?.v || "",
-       possession: c[3]?.v || "",
-       completion: c[4]?.v || "",
-       manager: c[5]?.v || "",
-       sec: c[6]?.v || ""
-     };
-   })
-   .filter(p => p.name && p.teamRaw && p.deadlineText)
-   .map(p => ({
-     ...p,
-     team: p.teamRaw.split(":")[0].trim()
-   }));
-   render(projects);
- } catch (err) {
-   console.error("JSON load error:", err);
+// Plain text project data
+const projects = [
+ {
+   name: "LMA24",
+   team: "PD1: Wai Leung",
+   manager: "Calvin Cheung",
+   sec: "Kiki Chan",
+   possession: "2024-09-01",
+   completion: "2026-07-01"
+ },
+ {
+   name: "KTE25",
+   team: "PD2: Harley Lau",
+   manager: "Ming Tam",
+   sec: "Angel Leung",
+   possession: "2026-02-08",
+   completion: "2026-05-30"
+ },
+ {
+   name: "CWT23",
+   team: "PD3: Sherman Choi",
+   manager: "Edwin Zee",
+   sec: "Dorothy Tsang",
+   possession: "2026-01-30",
+   completion: "2026-03-15"
  }
+];
+// Sort projects by Team (PD1 → PD2 → PD3)
+projects.sort((a,b) => a.team.localeCompare(b.team));
+function renderDayGrid(possession, completion, monthStart) {
+ const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth()+1,0).getDate();
+ const fragment = document.createDocumentFragment();
+ for(let d=1; d<=daysInMonth; d++){
+   const dayDiv = document.createElement("div");
+   dayDiv.className = "day";
+   dayDiv.textContent = d;
+   const dayDate = new Date(monthStart.getFullYear(), monthStart.getMonth(), d);
+   if(dayDate >= new Date(possession) && dayDate <= new Date(completion)){
+     dayDiv.classList.add("highlight");
+   }
+   fragment.appendChild(dayDiv);
+ }
+ return fragment;
 }
-function render(projects) {
+function renderCalendar(project) {
+ const start = new Date(); // current month
+ const container = document.createElement("div");
+ container.className = "calendar";
+ for(let m=0; m<12; m++){
+   const monthDiv = document.createElement("div");
+   monthDiv.className = "month";
+   const date = new Date(start.getFullYear(), start.getMonth()+m, 1);
+   monthDiv.innerHTML = `<div class="month-title">${date.toLocaleString('default',{month:'short'})} ${date.getFullYear()}</div>`;
+   monthDiv.appendChild(renderDayGrid(project.possession, project.completion, date));
+   container.appendChild(monthDiv);
+ }
+ return container;
+}
+function renderProjects() {
  const container = document.getElementById("container");
  container.innerHTML = "";
- const teamOrder = ["PD1", "PD2", "PD3"];
- const grouped = {};
- projects.forEach(p => {
-   if (!grouped[p.team]) grouped[p.team] = [];
-   grouped[p.team].push(p);
- });
- teamOrder.forEach(team => {
-   if (!grouped[team]) return;
-   const teamDiv = document.createElement("div");
-   teamDiv.className = "team";
-   teamDiv.innerHTML = `<h2>${team}</h2>`;
-   container.appendChild(teamDiv);
-   grouped[team]
-     .sort((a, b) => new Date(a.deadlineText) - new Date(b.deadlineText))
-     .forEach((p, i) => {
-       const div = document.createElement("div");
-       div.className = "project";
-       const id = `${team}_${i}`;
-       div.innerHTML = `
-<h3>${p.name}</h3>
-<div class="meta">
+ projects.forEach(p=>{
+   const projDiv = document.createElement("div");
+   projDiv.className = "project";
+   const infoDiv = document.createElement("div");
+   infoDiv.className = "project-info";
+   infoDiv.innerHTML = `
+<h2>${p.name}</h2>
+<p><b>Team:</b> ${p.team}</p>
 <p><b>Project Manager:</b> ${p.manager}</p>
 <p><b>Project Secretary:</b> ${p.sec}</p>
-<p><b>Tentative Possession Date:</b> ${p.possession}</p>
-<p><b>Tentative Completion Date:</b> ${p.completion}</p>
-</div>
-<div class="countdown" id="cd_${id}"></div>
-       `;
-       teamDiv.appendChild(div);
-       createCountdown(p.deadlineText, "cd_" + id);
-     });
+<p><b>Tentative Possession:</b> ${p.possession}</p>
+<p><b>Tentative Completion:</b> ${p.completion}</p>
+   `;
+   const calendarDiv = renderCalendar(p);
+   projDiv.appendChild(infoDiv);
+   projDiv.appendChild(calendarDiv);
+   container.appendChild(projDiv);
  });
 }
-function createCountdown(deadlineText, elId) {
- const target = new Date(deadlineText.replace(" ", "T"));
- function tick() {
-   const el = document.getElementById(elId);
-   if (!el || isNaN(target)) return;
-   const now = new Date();
-   const diff = target - now;
-   if (diff <= 0) {
-     el.textContent = "🎉 Completed";
-     return;
-   }
-   const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-   const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
-   const m = Math.floor((diff / (1000 * 60)) % 60);
-   const s = Math.floor((diff / 1000) % 60);
-   el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
- }
- tick();
- setInterval(tick, 1000);
-}
-loadProjects();
+renderProjects();
 </script>
 </body>
 </html>
