@@ -30,17 +30,12 @@ h2 {
 }
 .project {
  display: flex;
- justify-content: space-between;
- align-items: flex-start;
+ flex-direction: column;
  background: white;
  padding: 20px 30px;
  border-radius: 12px;
  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
- gap: 20px;
-}
-.project-info {
- flex: 1;
- line-height: 1.6;
+ gap: 10px;
 }
 .project-info h3 {
  margin-bottom: 10px;
@@ -52,31 +47,36 @@ h2 {
  color: #555;
 }
 .countdown {
- margin-top: 10px;
  font-size: 20px;
  font-weight: bold;
  color: #d32f2f;
 }
-.calendar {
- margin-left: 20px;
- display: flex;
- flex-wrap: wrap;
- justify-content: flex-start;
- max-width: 280px;
+.progress-container {
+ width: 100%;
+ height: 20px;
+ background: #eee;
+ border-radius: 10px;
+ position: relative;
+ margin-top: 8px;
 }
-.month {
- flex: 0 0 auto;
- margin: 4px;
- padding: 6px 8px;
- font-size: 0.85em;
- background: #f0f0f0;
- border-radius: 6px;
- text-align: center;
- transition: background 0.3s;
-}
-.month.highlight {
+.progress-bar {
+ height: 100%;
  background: #4caf50;
- color: white;
+ border-radius: 10px;
+ width: 0%;
+ position: absolute;
+ transition: width 0.5s, left 0.5s;
+}
+.progress-months {
+ display: flex;
+ justify-content: space-between;
+ font-size: 0.8em;
+ margin-top: 4px;
+ color: #555;
+}
+.progress-month {
+ flex: 1;
+ text-align: center;
 }
 </style>
 </head>
@@ -92,48 +92,42 @@ h2 {
 </div>
 <script>
 const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
-// Team 排序
-const teamOrder = ["PD1", "PD2", "PD3"];
+const teamOrder = ["PD1","PD2","PD3"];
 async function loadProjects() {
  try {
    const res = await fetch(jsonURL);
    const text = await res.text();
-   // 解析 Google Visualization JSON
    const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\((.*)\);/s);
-   if (!jsonMatch) throw new Error("無法解析 Google Sheets JSON");
+   if(!jsonMatch) throw new Error("無法解析 Google Sheets JSON");
    const json = JSON.parse(jsonMatch[1]);
    const rows = json.table.rows;
-   const projects = rows
-     .slice(1)
-     .filter(r => r.c && r.c[0]?.v)
-     .map(r => ({
-       name: r.c[0]?.v || "",
-       team: r.c[1]?.v || "",
-       manager: r.c[2]?.v || "",
-       secretary: r.c[3]?.v || "",
-       possession: r.c[4]?.v || "",
-       completion: r.c[5]?.v || "",
-       deadlineText: r.c[6]?.v || ""
-     }));
-   // 按 teamOrder 排序
+   const projects = rows.slice(1).filter(r=>r.c && r.c[0]?.v).map(r=>({
+     name: r.c[0]?.v || "",
+     team: r.c[1]?.v || "",
+     manager: r.c[2]?.v || "",
+     secretary: r.c[3]?.v || "",
+     possession: r.c[4]?.v || "",
+     completion: r.c[5]?.v || "",
+     deadlineText: r.c[6]?.v || ""
+   }));
    projects.sort((a,b)=>{
      const aTeam = a.team.split(":")[0].trim();
      const bTeam = b.team.split(":")[0].trim();
      return teamOrder.indexOf(aTeam) - teamOrder.indexOf(bTeam);
    });
    renderProjects(projects);
- } catch (err) {
+ } catch(err){
    console.error("JSON load error:", err);
  }
 }
-function renderProjects(projects) {
- projects.forEach((p, i) => {
+function renderProjects(projects){
+ projects.forEach((p,i)=>{
    const teamKey = p.team.split(":")[0].trim();
    const container = document.getElementById(`team-${teamKey}`);
-   if (!container) return;
+   if(!container) return;
    const div = document.createElement("div");
-   div.className = "project";
-   div.innerHTML = `
+   div.className="project";
+   div.innerHTML=`
 <div class="project-info">
 <h3>${p.name}</h3>
 <p><b>Project Manager:</b> ${p.manager}</p>
@@ -142,56 +136,61 @@ function renderProjects(projects) {
 <p class="countdown" id="cd${i}"></p>
 <p><b>Tentative Possession:</b> ${p.possession}</p>
 <p><b>Tentative Completion:</b> ${p.completion}</p>
+<div class="progress-container" id="progress${i}"><div class="progress-bar"></div></div>
+<div class="progress-months">
+<div class="progress-month">Jan</div>
+<div class="progress-month">Feb</div>
+<div class="progress-month">Mar</div>
+<div class="progress-month">Apr</div>
+<div class="progress-month">May</div>
+<div class="progress-month">Jun</div>
+<div class="progress-month">Jul</div>
+<div class="progress-month">Aug</div>
+<div class="progress-month">Sep</div>
+<div class="progress-month">Oct</div>
+<div class="progress-month">Nov</div>
+<div class="progress-month">Dec</div>
 </div>
-<div class="calendar" id="cal${i}"></div>
+</div>
    `;
    container.appendChild(div);
-   createCountdown(p.deadlineText, `cd${i}`);
-   createCalendar(p.possession, p.completion, `cal${i}`);
+   createCountdown(p.deadlineText,`cd${i}`);
+   createProgress(p.possession,p.completion,`progress${i}`);
  });
 }
-function createCountdown(dltxt, id) {
- const target = new Date(dltxt.replace(" ", "T"));
- function tick() {
-   const el = document.getElementById(id);
-   const now = new Date();
-   const diff = target - now;
-   if (diff <= 0) {
-     el.textContent = "🎉 Completed!";
-     return;
-   }
-   const d = Math.floor(diff / (1000*60*60*24));
-   const h = Math.floor((diff / (1000*60*60)) % 24);
-   const m = Math.floor((diff / (1000*60)) % 60);
-   const s = Math.floor((diff / 1000) % 60);
-   el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
+function createCountdown(dltxt,id){
+ const target=new Date(dltxt.replace(" ","T"));
+ function tick(){
+   const el=document.getElementById(id);
+   const now=new Date();
+   const diff=target-now;
+   if(diff<=0){el.textContent="🎉 Completed!";return;}
+   const d=Math.floor(diff/(1000*60*60*24));
+   const h=Math.floor((diff/(1000*60*60))%24);
+   const m=Math.floor((diff/(1000*60))%60);
+   const s=Math.floor((diff/1000)%60);
+   el.textContent=`${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
  }
  tick();
- setInterval(tick, 1000);
+ setInterval(tick,1000);
 }
-function createCalendar(posTxt, compTxt, id) {
- const el = document.getElementById(id);
- const now = new Date();
- let startMonth = now.getMonth();
- let startYear = now.getFullYear();
- let possession = posTxt ? new Date(posTxt.replace(" ", "T")) : null;
- let completion = compTxt ? new Date(compTxt.replace(" ", "T")) : null;
- for (let i=0; i<12; i++) {
-   let month = (startMonth + i) % 12;
-   let year = startYear + Math.floor((startMonth + i)/12);
-   let monthStr = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][month] + " " + year;
-   let div = document.createElement("div");
-   div.className = "month";
-   if (possession && completion) {
-     let firstOfMonth = new Date(year, month, 1);
-     let lastOfMonth = new Date(year, month+1, 0);
-     if (firstOfMonth <= completion && lastOfMonth >= possession) {
-       div.classList.add("highlight");
-     }
-   }
-   div.textContent = monthStr;
-   el.appendChild(div);
+function createProgress(posTxt,compTxt,id){
+ if(!posTxt||!compTxt)return;
+ const container=document.getElementById(id);
+ const bar=container.querySelector(".progress-bar");
+ const now=new Date();
+ const months=Array.from({length:12},(_,i)=>new Date(now.getFullYear(),i,1));
+ const possession=new Date(posTxt.replace(" ","T"));
+ const completion=new Date(compTxt.replace(" ","T"));
+ const totalMonths=months.length;
+ let startIndex=0,endIndex=11;
+ for(let i=0;i<12;i++){
+   if(months[i]<=possession) startIndex=i;
+   if(months[i+1]>completion) {endIndex=i; break;}
  }
+ const widthPercent=((endIndex-startIndex+1)/totalMonths)*100;
+ bar.style.width=`${widthPercent}%`;
+ bar.style.left=`${(startIndex/totalMonths)*100}%`;
 }
 loadProjects();
 </script>
