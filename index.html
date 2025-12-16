@@ -4,120 +4,235 @@
 <meta charset="UTF-8">
 <title>Project Countdown Dashboard</title>
 <style>
+
 body {
- font-family: Arial, sans-serif;
- background: #f3f4f6;
- padding: 30px;
+
+  font-family: Arial, sans-serif;
+
+  background: #f3f4f6;
+
+  padding: 30px;
+
 }
+
+h1 {
+
+  text-align: center;
+
+}
+
 .team {
- max-width: 900px;
- margin: 0 auto 40px;
+
+  max-width: 900px;
+
+  margin: 0 auto 40px;
+
 }
+
 .team h2 {
- background: #111827;
- color: white;
- padding: 12px 20px;
- border-radius: 8px;
+
+  background: #111827;
+
+  color: white;
+
+  padding: 12px 20px;
+
+  border-radius: 8px;
+
 }
+
 .project {
- background: white;
- margin-top: 15px;
- padding: 18px 22px;
- border-radius: 10px;
- box-shadow: 0 4px 12px rgba(0,0,0,.1);
+
+  background: white;
+
+  margin-top: 15px;
+
+  padding: 18px 22px;
+
+  border-radius: 10px;
+
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+
 }
+
 .project h3 {
- margin: 0 0 8px;
+
+  margin: 0 0 8px;
+
 }
+
 .meta {
- color: #374151;
- font-size: 14px;
+
+  color: #374151;
+
+  font-size: 14px;
+
 }
+
 .countdown {
- margin-top: 10px;
- font-size: 20px;
- font-weight: bold;
+
+  margin-top: 10px;
+
+  font-size: 20px;
+
+  font-weight: bold;
+
 }
 </style>
 </head>
 <body>
-<h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
+<h1>📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
 <script>
+
 const jsonURL =
+
 "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
+
 const TEAM_ORDER = ["PD1", "PD2", "PD3"];
+
 async function loadProjects() {
- const res = await fetch(jsonURL);
- const text = await res.text();
- const json = JSON.parse(
-   text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1)
- );
- const rows = json.table.rows;
- const projects = rows
-   .map(r => ({
-     name: r.c[0]?.v,
-     teamRaw: r.c[1]?.v,
-     deadlineText: r.c[3]?.v,
-     manager: r.c[4]?.v,
-     sec: r.c[5]?.v
-   }))
-   // ✅ 去除 null 行
-   .filter(p => p.name && p.teamRaw && p.deadlineText)
-   // ✅ 拆 team code（PD1 / PD2 / PD3）
-   .map(p => ({
-     ...p,
-     team: p.teamRaw.split(":")[0].trim()
-   }));
- renderByTeam(projects);
+
+  const res = await fetch(jsonURL);
+
+  const text = await res.text();
+
+  const json = JSON.parse(
+
+    text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1)
+
+  );
+
+  const rows = json.table.rows;
+
+  const projects = rows
+
+    .map(r => ({
+
+      name: r.c[0]?.v,
+
+      teamRaw: r.c[1]?.v,
+
+      deadlineText: r.c[2]?.v,
+
+      possession: r.c[3]?.v,
+
+      completion: r.c[4]?.v,
+
+      manager: r.c[5]?.v,
+
+      sec: r.c[6]?.v
+
+    }))
+
+    // ✅ 只保留真正有 project 嘅行
+
+    .filter(p => p.name && p.teamRaw && p.deadlineText)
+
+    // ✅ 抽出 PD1 / PD2 / PD3
+
+    .map(p => ({
+
+      ...p,
+
+      team: p.teamRaw.split(":")[0].trim()
+
+    }));
+
+  renderByTeam(projects);
+
 }
+
 function renderByTeam(projects) {
- const container = document.getElementById("container");
- container.innerHTML = "";
- TEAM_ORDER.forEach(team => {
-   const list = projects.filter(p => p.team === team);
-   if (list.length === 0) return;
-   const teamDiv = document.createElement("div");
-   teamDiv.className = "team";
-   teamDiv.innerHTML = `<h2>${team}</h2>`;
-   container.appendChild(teamDiv);
-   list.forEach((p, i) => {
-     const div = document.createElement("div");
-     div.className = "project";
-     const id = `${team}-${i}`;
-     div.innerHTML = `
+
+  const container = document.getElementById("container");
+
+  container.innerHTML = "";
+
+  TEAM_ORDER.forEach(team => {
+
+    const list = projects.filter(p => p.team === team);
+
+    if (list.length === 0) return;
+
+    const teamDiv = document.createElement("div");
+
+    teamDiv.className = "team";
+
+    teamDiv.innerHTML = `<h2>${team}</h2>`;
+
+    container.appendChild(teamDiv);
+
+    list.forEach((p, i) => {
+
+      const id = `${team}-${i}`;
+
+      const div = document.createElement("div");
+
+      div.className = "project";
+
+      div.innerHTML = `
 <h3>${p.name}</h3>
 <div class="meta">
 <div><b>Team:</b> ${p.teamRaw}</div>
+<div><b>Deadline:</b> ${p.deadlineText}</div>
+<div><b>Tentative Possession:</b> ${p.possession || "-"}</div>
+<div><b>Tentative Completion:</b> ${p.completion || "-"}</div>
 <div><b>Project Manager:</b> ${p.manager || "-"}</div>
 <div><b>Project Secretary:</b> ${p.sec || "-"}</div>
 </div>
 <div class="countdown" id="${id}"></div>
-     `;
-     teamDiv.appendChild(div);
-     createCountdown(p.deadlineText, id);
-   });
- });
+
+      `;
+
+      teamDiv.appendChild(div);
+
+      createCountdown(p.deadlineText, id);
+
+    });
+
+  });
+
 }
+
 function createCountdown(text, id) {
- const target = new Date(text.replace(" ", "T"));
- function tick() {
-   const el = document.getElementById(id);
-   const diff = target - new Date();
-   if (diff <= 0) {
-     el.textContent = "🎉 Completed";
-     return;
-   }
-   const d = Math.floor(diff / 86400000);
-   const h = Math.floor(diff / 3600000) % 24;
-   const m = Math.floor(diff / 60000) % 60;
-   const s = Math.floor(diff / 1000) % 60;
-   el.textContent = `${d}d ${h}h ${m}m ${s}s`;
- }
- tick();
- setInterval(tick, 1000);
+
+  const target = new Date(text.replace(" ", "T"));
+
+  function tick() {
+
+    const el = document.getElementById(id);
+
+    const diff = target - new Date();
+
+    if (diff <= 0) {
+
+      el.textContent = "🎉 Completed";
+
+      return;
+
+    }
+
+    const d = Math.floor(diff / 86400000);
+
+    const h = Math.floor(diff / 3600000) % 24;
+
+    const m = Math.floor(diff / 60000) % 60;
+
+    const s = Math.floor(diff / 1000) % 60;
+
+    el.textContent = `${d}d ${h}h ${m}m ${s}s`;
+
+  }
+
+  tick();
+
+  setInterval(tick, 1000);
+
 }
+
 loadProjects();
 </script>
 </body>
 </html>
+ 
