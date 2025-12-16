@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
-<title>Project Manager Gantt Dashboard</title>
+<title>Team & PM Gantt Dashboard</title>
 <style>
 body {
  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -23,8 +23,10 @@ h2 {
  border-bottom: 2px solid #1976d2;
  padding-bottom: 4px;
 }
-.manager-container {
- margin-bottom: 40px;
+h3 {
+ margin-top: 15px;
+ margin-bottom: 8px;
+ color: #f57c00;
 }
 .project-info {
  background: white;
@@ -33,9 +35,9 @@ h2 {
  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
  margin-bottom: 6px;
 }
-.project-info h3 {
+.project-info h4 {
  margin: 0 0 6px 0;
- font-size: 1.2em;
+ font-size: 1em;
  color: #333;
 }
 .project-info p {
@@ -88,7 +90,7 @@ h2 {
 </style>
 </head>
 <body>
-<h1>📅 Project Manager Gantt Dashboard</h1>
+<h1>📅 Team & Project Manager Gantt Dashboard</h1>
 <div id="container"></div>
 <div id="tooltip" class="tooltip"></div>
 <script>
@@ -111,58 +113,64 @@ async function loadProjects() {
      completion: r.c[5]?.v || "",
      deadlineText: r.c[6]?.v || ""
    }));
-   // 按 manager 分組
-   const managers = {};
+   // 先按 Team 分組
+   const teams = {};
    projects.forEach(p=>{
-     if(!managers[p.manager]) managers[p.manager]=[];
-     managers[p.manager].push(p);
+     const teamKey = p.team.split(":")[0].trim();
+     if(!teams[teamKey]) teams[teamKey] = [];
+     teams[teamKey].push(p);
    });
-   renderManagers(managers);
+   renderTeams(teams);
  } catch(err){
    console.error("JSON load error:", err);
  }
 }
-function renderManagers(managers){
+function renderTeams(teams){
  const container = document.getElementById("container");
  const now = new Date();
  const months = Array.from({length:12},(_,i)=>new Date(now.getFullYear(),now.getMonth()+i,1));
  const monthNames = months.map(m => m.toLocaleString('en', {month:'short'}) + "-" + m.getFullYear().toString().slice(-2));
  const tooltip = document.getElementById("tooltip");
- Object.keys(managers).forEach(manager=>{
+ Object.keys(teams).forEach(teamKey=>{
    const h2 = document.createElement("h2");
-   h2.textContent = manager;
+   h2.textContent = teamKey;
    container.appendChild(h2);
-   const divContainer = document.createElement("div");
-   divContainer.className = "manager-container";
-   container.appendChild(divContainer);
-   managers[manager].forEach((p,i)=>{
-     const infoDiv = document.createElement("div");
-     infoDiv.className = "project-info";
-     infoDiv.innerHTML=`
-<h3>${p.name}</h3>
-<p><b>Team:</b> ${p.team}</p>
+   // 按 Project Manager 分組
+   const managerGroups = {};
+   teams[teamKey].forEach(p=>{
+     if(!managerGroups[p.manager]) managerGroups[p.manager]=[];
+     managerGroups[p.manager].push(p);
+   });
+   Object.keys(managerGroups).forEach(manager=>{
+     const h3 = document.createElement("h3");
+     h3.textContent = manager;
+     container.appendChild(h3);
+     managerGroups[manager].forEach((p,i)=>{
+       const infoDiv = document.createElement("div");
+       infoDiv.className = "project-info";
+       infoDiv.innerHTML=`
+<h4>${p.name}</h4>
 <p><b>Project Secretary:</b> ${p.secretary}</p>
 <p><b>Deadline:</b> ${p.deadlineText}</p>
-<p class="countdown" id="cd-${manager}-${i}"></p>
+<p class="countdown" id="cd-${teamKey}-${manager}-${i}"></p>
 <p><b>Tentative Possession:</b> ${p.possession}</p>
 <p><b>Tentative Completion:</b> ${p.completion}</p>
-     `;
-     divContainer.appendChild(infoDiv);
-     // 甘特圖容器（每個專案一條）
-     const ganttBarContainer = document.createElement("div");
-     ganttBarContainer.className = "gantt-container";
-     ganttBarContainer.style.height = "25px";
-     ganttBarContainer.style.position = "relative";
-     divContainer.appendChild(ganttBarContainer);
-     createCountdown(p.deadlineText,`cd-${manager}-${i}`);
-     createGanttBar(p.possession,p.completion,ganttBarContainer,teamColors[p.team.split(":")[0]] || "#4caf50",p,tooltip);
-     // 月份軸放在進度條下方
-     if(i===managers[manager].length-1){
-       const monthAxis = document.createElement("div");
-       monthAxis.className = "month-axis";
-       monthAxis.innerHTML = monthNames.map(m=>`<div>${m}</div>`).join("");
-       divContainer.appendChild(monthAxis);
-     }
+       `;
+       container.appendChild(infoDiv);
+       // 甘特圖容器
+       const ganttBarContainer = document.createElement("div");
+       ganttBarContainer.className = "gantt-container";
+       ganttBarContainer.style.height = "25px";
+       ganttBarContainer.style.position = "relative";
+       container.appendChild(ganttBarContainer);
+       createCountdown(p.deadlineText,`cd-${teamKey}-${manager}-${i}`);
+       createGanttBar(p.possession,p.completion,ganttBarContainer,teamColors[teamKey] || "#4caf50",p,tooltip);
+     });
+     // 月份軸放在 manager 最後
+     const monthAxis = document.createElement("div");
+     monthAxis.className = "month-axis";
+     monthAxis.innerHTML = monthNames.map(m=>`<div>${m}</div>`).join("");
+     container.appendChild(monthAxis);
    });
  });
 }
