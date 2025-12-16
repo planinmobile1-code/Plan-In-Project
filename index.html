@@ -1,146 +1,92 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Project Calendar Dashboard</title>
+<title>Project Countdown Dashboard</title>
 <style>
 body {
  font-family: Arial, sans-serif;
  padding: 20px;
  background: #f3f4f6;
 }
-h1 {
- text-align: center;
-}
-.project-container {
- display: flex;
- flex-direction: column;
- gap: 30px;
-}
 .project {
- display: flex;
  background: white;
  padding: 20px;
+ margin: 20px auto;
+ max-width: 900px;
  border-radius: 10px;
  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+ display: flex;
  gap: 20px;
 }
 .project-info {
- min-width: 200px;
-}
-.project-info p {
- margin: 4px 0;
+ flex: 1;
 }
 .countdown {
- margin: 10px 0;
+ margin-top: 10px;
+ font-size: 20px;
  font-weight: bold;
- font-size: 18px;
- color: #d32f2f;
 }
 .calendar {
- display: flex;
- gap: 10px;
- overflow-x: auto;
- align-items: center;
+ flex: 1;
+ display: grid;
+ grid-template-columns: repeat(4, 1fr);
+ gap: 5px;
+ font-size: 14px;
 }
 .month {
- width: 60px;
+ padding: 8px;
  text-align: center;
- padding: 5px;
- border-radius: 6px;
+ border-radius: 4px;
  background: #eee;
- font-size: 12px;
- font-weight: bold;
 }
 .month.highlight {
- background: #4caf50;
- color: white;
+ background: #ffcc80;
+ font-weight: bold;
 }
 </style>
 </head>
 <body>
-<h1>📅 Project Calendar Dashboard</h1>
-<div class="project-container" id="container"></div>
+<h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
+<div id="container"></div>
 <script>
-// Plain text project data
-const projects = [
- {
-   name: "LMA24",
-   team: "PD1: Wai Leung",
-   manager: "Calvin Cheung",
-   sec: "Kiki Chan",
-   possession: "2024-09-01",
-   completion: "2026-07-01",
-   deadline: "2026-07-01"
- },
- {
-   name: "KTE25",
-   team: "PD2: Harley Lau",
-   manager: "Ming Tam",
-   sec: "Angel Leung",
-   possession: "2026-02-08",
-   completion: "2026-05-30",
-   deadline: "2026-05-30"
- },
- {
-   name: "CWT23",
-   team: "PD3: Sherman Choi",
-   manager: "Edwin Zee",
-   sec: "Dorothy Tsang",
-   possession: "2026-01-30",
-   completion: "2026-03-15",
-   deadline: "2026-03-15"
+const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
+async function loadProjects() {
+ try {
+   const res = await fetch(jsonURL);
+   let text = await res.text();
+   const json = JSON.parse(text.substring(47, text.length - 2)); // gviz JSON 裁切
+   const rows = json.table.rows;
+   const projects = rows
+     .filter(r => r.c && r.c[0]?.v)
+     .map(r => ({
+       name: r.c[0]?.v || "",
+       team: r.c[1]?.v || "",
+       deadline: r.c[3]?.v || "", // plain text
+       manager: r.c[4]?.v || "",
+       sec: r.c[5]?.v || "",
+       possession: r.c[6]?.v || "",
+       completion: r.c[7]?.v || ""
+     }));
+   renderProjects(projects);
+ } catch(e) {
+   console.error("JSON load error:", e);
  }
-];
-// Sort projects by Team (PD1 → PD2 → PD3)
-projects.sort((a,b) => a.team.localeCompare(b.team));
-// Render calendar months, highlight possession → completion
-function renderCalendarMonths(possession, completion) {
- const container = document.createElement("div");
- container.className = "calendar";
- const start = new Date(); // current month
- for(let m=0; m<12; m++){
-   const date = new Date(start.getFullYear(), start.getMonth()+m, 1);
-   const monthDiv = document.createElement("div");
-   monthDiv.className = "month";
-   monthDiv.textContent = date.toLocaleString('default',{month:'short'}) + ' ' + date.getFullYear();
-   const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-   const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth()+1, 0);
-   if(new Date(possession) <= lastDayOfMonth && new Date(completion) >= firstDayOfMonth){
-     monthDiv.classList.add("highlight");
-   }
-   container.appendChild(monthDiv);
- }
- return container;
 }
-// Countdown based on deadline
-function createCountdown(deadline, id) {
- const target = new Date(deadline);
- function tick(){
-   const el = document.getElementById(id);
-   const now = new Date();
-   const diff = target - now;
-   if(diff <= 0){
-     el.textContent = "🎉 Completed!";
-     return;
-   }
-   const d = Math.floor(diff / (1000*60*60*24));
-   const h = Math.floor((diff / (1000*60*60)) % 24);
-   const m = Math.floor((diff / (1000*60)) % 60);
-   const s = Math.floor((diff / 1000) % 60);
-   el.textContent = `Countdown: ${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
- }
- tick();
- setInterval(tick, 1000);
- return `<div class="countdown" id="${id}"></div>`;
-}
-// Render all projects
-function renderProjects() {
+function renderProjects(projects) {
  const container = document.getElementById("container");
  container.innerHTML = "";
+ // PD 排序
+ const order = ["PD1", "PD2", "PD3"];
+ projects.sort((a,b)=>{
+   let aTeam = a.team.split(":")[0];
+   let bTeam = b.team.split(":")[0];
+   return order.indexOf(aTeam) - order.indexOf(bTeam);
+ });
  projects.forEach((p,i)=>{
    const projDiv = document.createElement("div");
    projDiv.className = "project";
+   // Info + Countdown
    const infoDiv = document.createElement("div");
    infoDiv.className = "project-info";
    infoDiv.innerHTML = `
@@ -150,17 +96,56 @@ function renderProjects() {
 <p><b>Project Secretary:</b> ${p.sec}</p>
 <p><b>Tentative Possession:</b> ${p.possession}</p>
 <p><b>Tentative Completion:</b> ${p.completion}</p>
-     ${createCountdown(p.deadline, "cd"+i)}
+<div class="countdown" id="cd${i}"></div>
    `;
-   const calendarDiv = renderCalendarMonths(p.possession, p.completion);
    projDiv.appendChild(infoDiv);
+   // Calendar
+   const calendarDiv = document.createElement("div");
+   calendarDiv.className = "calendar";
+   const now = new Date();
+   const possessionMonth = p.possession ? new Date(p.possession) : null;
+   const completionMonth = p.completion ? new Date(p.completion) : null;
+   for(let m=0;m<12;m++){
+     const monthDate = new Date(now.getFullYear(), now.getMonth()+m,1);
+     const monthDiv = document.createElement("div");
+     monthDiv.className = "month";
+     monthDiv.textContent = monthDate.toLocaleString('default',{month:'short',year:'2-digit'});
+     if(possessionMonth && completionMonth){
+       if(monthDate >= new Date(possessionMonth.getFullYear(),possessionMonth.getMonth(),1) &&
+          monthDate <= new Date(completionMonth.getFullYear(),completionMonth.getMonth(),1)){
+         monthDiv.classList.add("highlight");
+       }
+     }
+     calendarDiv.appendChild(monthDiv);
+   }
    projDiv.appendChild(calendarDiv);
    container.appendChild(projDiv);
-   // 啟動倒數
-   createCountdown(p.deadline, "cd"+i);
+   // Start countdown AFTER element in DOM
+   startCountdown(p.deadline,"cd"+i);
  });
 }
-renderProjects();
+// Countdown function
+function startCountdown(dltxt,id){
+ const target = new Date(dltxt.replace(" ","T"));
+ function tick(){
+   const el = document.getElementById(id);
+   if(!el) return;
+   const now = new Date();
+   const diff = target - now;
+   if(diff<=0){
+     el.textContent = "🎉 Completed!";
+     return;
+   }
+   const d = Math.floor(diff / (1000*60*60*24));
+   const h = Math.floor((diff / (1000*60*60))%24);
+   const m = Math.floor((diff / (1000*60))%60);
+   const s = Math.floor((diff/1000)%60);
+   el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
+ }
+ tick();
+ setInterval(tick,1000);
+}
+loadProjects();
 </script>
 </body>
 </html>
