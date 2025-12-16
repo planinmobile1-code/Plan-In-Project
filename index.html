@@ -13,33 +13,31 @@ body {
  background: white;
  padding: 20px;
  margin: 20px auto;
- max-width: 900px;
+ max-width: 1000px;
  border-radius: 10px;
  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .countdown {
  margin-top: 10px;
- font-size: 20px;
+ font-size: 22px;
  font-weight: bold;
 }
 .calendar {
+ margin-top: 10px;
  display: flex;
- gap: 5px;
  flex-wrap: wrap;
- margin-top: 15px;
 }
-.month {
- width: 70px;
- height: 40px;
- line-height: 40px;
+.calendar .month {
+ width: 80px;
+ height: 30px;
+ line-height: 30px;
+ margin: 2px;
  text-align: center;
- border-radius: 5px;
- background: #e0e0e0;
- font-size: 14px;
+ border-radius: 4px;
+ background: #eee;
 }
-.month.highlight {
- background: #4caf50;
- color: white;
+.calendar .highlight {
+ background: #ffcc66;
  font-weight: bold;
 }
 </style>
@@ -53,28 +51,30 @@ async function loadProjects() {
  try {
    const res = await fetch(jsonURL);
    let text = await res.text();
-   const json = JSON.parse(text.substring(47, text.length - 2)); // Google Visualization JSON 去頭尾
+   // 裁切 Google Visualization JSON
+   const json = JSON.parse(text.substring(47, text.length - 2));
    const rows = json.table.rows;
+   // 轉 Project List，同時跳過 header
    let projects = rows
-     .filter(r => r.c && r.c[0]?.v)
+     .filter(r => r.c && r.c[0]?.v && r.c[0]?.v !== "Project Name")
      .map(r => ({
        name: r.c[0]?.v || "",
        team: r.c[1]?.v || "",
-       deadline: r.c[2]?.v || "",          // Column C
-       possession: r.c[3]?.v || "",       // Column D
-       completion: r.c[4]?.v || "",       // Column E
-       manager: r.c[5]?.v || "",          // Column F
-       sec: r.c[6]?.v || ""               // Column G
+       deadline: r.c[3]?.v || "",          // Deadline text
+       possession: r.c[4]?.v || "",
+       completion: r.c[5]?.v || "",
+       manager: r.c[2]?.v || "",          // Project Manager
+       sec: r.c[6]?.v || ""               // Project Secretary
      }));
-   // PD 排序: PD1, PD2, PD3
-   const pdOrder = ["PD1", "PD2", "PD3"];
+   // PD 排序
+   const order = ["PD1", "PD2", "PD3"];
    projects.sort((a,b) => {
-     const aIndex = pdOrder.findIndex(x => a.team.startsWith(x));
-     const bIndex = pdOrder.findIndex(x => b.team.startsWith(x));
-     return aIndex - bIndex;
+     let aPD = order.findIndex(o => a.team.includes(o));
+     let bPD = order.findIndex(o => b.team.includes(o));
+     return aPD - bPD;
    });
    renderProjects(projects);
- } catch(err) {
+ } catch (err) {
    console.error("JSON load error:", err);
  }
 }
@@ -82,6 +82,7 @@ function renderProjects(list) {
  const container = document.getElementById("container");
  container.innerHTML = "";
  list.forEach((p, i) => {
+   if (!p.name) return;
    const div = document.createElement("div");
    div.className = "project";
    div.innerHTML = `
@@ -95,19 +96,19 @@ function renderProjects(list) {
 <div class="calendar" id="cal${i}"></div>
    `;
    container.appendChild(div);
-   createCountdown(p.deadline, "cd"+i);
-   createCalendar(p.possession, p.completion, "cal"+i);
+   createCountdown(p.deadline, "cd" + i);
+   renderCalendar(p.possession, p.completion, "cal" + i);
  });
 }
-function createCountdown(deadlineText, id) {
- if(!deadlineText) return;
- const target = new Date(deadlineText.replace(" ", "T"));
+function createCountdown(dltxt, id) {
+ if(!dltxt) return;
+ const target = new Date(dltxt.replace(" ", "T"));
  function tick() {
    const el = document.getElementById(id);
    if(!el) return;
    const now = new Date();
    const diff = target - now;
-   if(diff <= 0) {
+   if (diff <= 0) {
      el.textContent = "🎉 Completed!";
      return;
    }
@@ -120,30 +121,24 @@ function createCountdown(deadlineText, id) {
  tick();
  setInterval(tick, 1000);
 }
-function createCalendar(posText, compText, id) {
- const el = document.getElementById(id);
- if(!el) return;
+function renderCalendar(posTxt, compTxt, id) {
+ const container = document.getElementById(id);
+ if(!container) return;
+ container.innerHTML = "";
  const now = new Date();
- const months = [];
- for(let i=0;i<12;i++){
-   const dt = new Date(now.getFullYear(), now.getMonth()+i, 1);
-   months.push({month: dt.getMonth(), year: dt.getFullYear(), label: dt.toLocaleString('default',{month:'short', year:'2-digit'})});
- }
- const start = posText ? new Date(posText.replace(" ", "T")) : null;
- const end = compText ? new Date(compText.replace(" ", "T")) : null;
- months.forEach(m=>{
-   const div = document.createElement("div");
+ let pos = posTxt ? new Date(posTxt.replace(" ", "T")) : null;
+ let comp = compTxt ? new Date(compTxt.replace(" ", "T")) : null;
+ for(let i=0; i<12; i++){
+   let m = new Date(now.getFullYear(), now.getMonth()+i, 1);
+   let monthStr = m.toLocaleString('default', { month: 'short', year:'2-digit' });
+   let div = document.createElement("div");
    div.className = "month";
-   div.textContent = m.label;
-   if(start && end){
-     const mStart = new Date(start.getFullYear(), start.getMonth(),1);
-     const mEnd = new Date(end.getFullYear(), end.getMonth(),1);
-     if(mStart <= new Date(m.year,m.month,1) && new Date(m.year,m.month,1) <= mEnd){
-       div.classList.add("highlight");
-     }
+   div.textContent = monthStr;
+   if(pos && comp && m>=new Date(pos.getFullYear(),pos.getMonth(),1) && m<=new Date(comp.getFullYear(),comp.getMonth(),1)){
+     div.classList.add("highlight");
    }
-   el.appendChild(div);
- });
+   container.appendChild(div);
+ }
 }
 loadProjects();
 </script>
