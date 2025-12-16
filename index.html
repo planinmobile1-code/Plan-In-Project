@@ -50,27 +50,28 @@ h2 {
  margin-top: 4px;
 }
 /* 甘特圖 */
-.month-axis {
- display: flex;
- justify-content: space-between;
- font-size: 0.8em;
- margin-bottom: 4px;
- color: #555;
-}
 .gantt-container {
  position: relative;
- height: 25px;
- background: #eee;
- border-radius: 6px;
- margin-bottom: 20px;
+ margin-bottom: 6px;
 }
 .gantt-bar {
  position: absolute;
- height: 20px;
+ height: 25px;
  border-radius: 4px;
- top: 2px;
  opacity: 0.85;
  cursor: pointer;
+}
+.month-axis {
+ display: flex;
+ justify-content: space-between;
+ font-size: 0.75em;
+ color: #555;
+ margin-bottom: 20px;
+ margin-top: 4px;
+}
+.month-axis div {
+ flex: 1;
+ text-align: center;
 }
 .tooltip {
  position: absolute;
@@ -125,7 +126,7 @@ function renderManagers(managers){
  const container = document.getElementById("container");
  const now = new Date();
  const months = Array.from({length:12},(_,i)=>new Date(now.getFullYear(),now.getMonth()+i,1));
- const monthNames = months.map(m => m.toLocaleString('en', {month:'short'}));
+ const monthNames = months.map(m => m.toLocaleString('en', {month:'short'}) + "-" + m.getFullYear().toString().slice(-2));
  const tooltip = document.getElementById("tooltip");
  Object.keys(managers).forEach(manager=>{
    const h2 = document.createElement("h2");
@@ -133,13 +134,6 @@ function renderManagers(managers){
    container.appendChild(h2);
    const divContainer = document.createElement("div");
    divContainer.className = "manager-container";
-   const monthAxis = document.createElement("div");
-   monthAxis.className = "month-axis";
-   monthAxis.innerHTML = monthNames.map(m=>`<div>${m}</div>`).join("");
-   const ganttBar = document.createElement("div");
-   ganttBar.className = "gantt-container";
-   divContainer.appendChild(monthAxis);
-   divContainer.appendChild(ganttBar);
    container.appendChild(divContainer);
    managers[manager].forEach((p,i)=>{
      const infoDiv = document.createElement("div");
@@ -153,9 +147,22 @@ function renderManagers(managers){
 <p><b>Tentative Possession:</b> ${p.possession}</p>
 <p><b>Tentative Completion:</b> ${p.completion}</p>
      `;
-     divContainer.insertBefore(infoDiv,ganttBar);
+     divContainer.appendChild(infoDiv);
+     // 甘特圖容器（每個專案一條）
+     const ganttBarContainer = document.createElement("div");
+     ganttBarContainer.className = "gantt-container";
+     ganttBarContainer.style.height = "25px";
+     ganttBarContainer.style.position = "relative";
+     divContainer.appendChild(ganttBarContainer);
      createCountdown(p.deadlineText,`cd-${manager}-${i}`);
-     createGanttBar(p.possession,p.completion,ganttBar,teamColors[p.team.split(":")[0]] || "#4caf50",p,tooltip);
+     createGanttBar(p.possession,p.completion,ganttBarContainer,teamColors[p.team.split(":")[0]] || "#4caf50",p,tooltip);
+     // 月份軸放在進度條下方
+     if(i===managers[manager].length-1){
+       const monthAxis = document.createElement("div");
+       monthAxis.className = "month-axis";
+       monthAxis.innerHTML = monthNames.map(m=>`<div>${m}</div>`).join("");
+       divContainer.appendChild(monthAxis);
+     }
    });
  });
 }
