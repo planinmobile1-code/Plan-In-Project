@@ -16,11 +16,6 @@ body {
  max-width: 900px;
  border-radius: 10px;
  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
- display: flex;
- gap: 20px;
-}
-.project-info {
- flex: 1;
 }
 .countdown {
  margin-top: 10px;
@@ -28,20 +23,23 @@ body {
  font-weight: bold;
 }
 .calendar {
- flex: 1;
- display: grid;
- grid-template-columns: repeat(4, 1fr);
+ display: flex;
  gap: 5px;
- font-size: 14px;
+ flex-wrap: wrap;
+ margin-top: 15px;
 }
 .month {
- padding: 8px;
+ width: 70px;
+ height: 40px;
+ line-height: 40px;
  text-align: center;
- border-radius: 4px;
- background: #eee;
+ border-radius: 5px;
+ background: #e0e0e0;
+ font-size: 14px;
 }
 .month.highlight {
- background: #ffcc80;
+ background: #4caf50;
+ color: white;
  font-weight: bold;
 }
 </style>
@@ -55,41 +53,38 @@ async function loadProjects() {
  try {
    const res = await fetch(jsonURL);
    let text = await res.text();
-   const json = JSON.parse(text.substring(47, text.length - 2)); // gviz JSON 裁切
+   const json = JSON.parse(text.substring(47, text.length - 2)); // Google Visualization JSON 去頭尾
    const rows = json.table.rows;
-   const projects = rows
+   let projects = rows
      .filter(r => r.c && r.c[0]?.v)
      .map(r => ({
        name: r.c[0]?.v || "",
        team: r.c[1]?.v || "",
-       deadline: r.c[3]?.v || "", // plain text
-       manager: r.c[4]?.v || "",
-       sec: r.c[5]?.v || "",
-       possession: r.c[6]?.v || "",
-       completion: r.c[7]?.v || ""
+       deadline: r.c[2]?.v || "",          // Column C
+       possession: r.c[3]?.v || "",       // Column D
+       completion: r.c[4]?.v || "",       // Column E
+       manager: r.c[5]?.v || "",          // Column F
+       sec: r.c[6]?.v || ""               // Column G
      }));
+   // PD 排序: PD1, PD2, PD3
+   const pdOrder = ["PD1", "PD2", "PD3"];
+   projects.sort((a,b) => {
+     const aIndex = pdOrder.findIndex(x => a.team.startsWith(x));
+     const bIndex = pdOrder.findIndex(x => b.team.startsWith(x));
+     return aIndex - bIndex;
+   });
    renderProjects(projects);
- } catch(e) {
-   console.error("JSON load error:", e);
+ } catch(err) {
+   console.error("JSON load error:", err);
  }
 }
-function renderProjects(projects) {
+function renderProjects(list) {
  const container = document.getElementById("container");
  container.innerHTML = "";
- // PD 排序
- const order = ["PD1", "PD2", "PD3"];
- projects.sort((a,b)=>{
-   let aTeam = a.team.split(":")[0];
-   let bTeam = b.team.split(":")[0];
-   return order.indexOf(aTeam) - order.indexOf(bTeam);
- });
- projects.forEach((p,i)=>{
-   const projDiv = document.createElement("div");
-   projDiv.className = "project";
-   // Info + Countdown
-   const infoDiv = document.createElement("div");
-   infoDiv.className = "project-info";
-   infoDiv.innerHTML = `
+ list.forEach((p, i) => {
+   const div = document.createElement("div");
+   div.className = "project";
+   div.innerHTML = `
 <h2>${p.name}</h2>
 <p><b>Team:</b> ${p.team}</p>
 <p><b>Project Manager:</b> ${p.manager}</p>
@@ -97,53 +92,58 @@ function renderProjects(projects) {
 <p><b>Tentative Possession:</b> ${p.possession}</p>
 <p><b>Tentative Completion:</b> ${p.completion}</p>
 <div class="countdown" id="cd${i}"></div>
+<div class="calendar" id="cal${i}"></div>
    `;
-   projDiv.appendChild(infoDiv);
-   // Calendar
-   const calendarDiv = document.createElement("div");
-   calendarDiv.className = "calendar";
-   const now = new Date();
-   const possessionMonth = p.possession ? new Date(p.possession) : null;
-   const completionMonth = p.completion ? new Date(p.completion) : null;
-   for(let m=0;m<12;m++){
-     const monthDate = new Date(now.getFullYear(), now.getMonth()+m,1);
-     const monthDiv = document.createElement("div");
-     monthDiv.className = "month";
-     monthDiv.textContent = monthDate.toLocaleString('default',{month:'short',year:'2-digit'});
-     if(possessionMonth && completionMonth){
-       if(monthDate >= new Date(possessionMonth.getFullYear(),possessionMonth.getMonth(),1) &&
-          monthDate <= new Date(completionMonth.getFullYear(),completionMonth.getMonth(),1)){
-         monthDiv.classList.add("highlight");
-       }
-     }
-     calendarDiv.appendChild(monthDiv);
-   }
-   projDiv.appendChild(calendarDiv);
-   container.appendChild(projDiv);
-   // Start countdown AFTER element in DOM
-   startCountdown(p.deadline,"cd"+i);
+   container.appendChild(div);
+   createCountdown(p.deadline, "cd"+i);
+   createCalendar(p.possession, p.completion, "cal"+i);
  });
 }
-// Countdown function
-function startCountdown(dltxt,id){
- const target = new Date(dltxt.replace(" ","T"));
- function tick(){
+function createCountdown(deadlineText, id) {
+ if(!deadlineText) return;
+ const target = new Date(deadlineText.replace(" ", "T"));
+ function tick() {
    const el = document.getElementById(id);
    if(!el) return;
    const now = new Date();
    const diff = target - now;
-   if(diff<=0){
+   if(diff <= 0) {
      el.textContent = "🎉 Completed!";
      return;
    }
    const d = Math.floor(diff / (1000*60*60*24));
-   const h = Math.floor((diff / (1000*60*60))%24);
-   const m = Math.floor((diff / (1000*60))%60);
-   const s = Math.floor((diff/1000)%60);
+   const h = Math.floor((diff / (1000*60*60)) % 24);
+   const m = Math.floor((diff / (1000*60)) % 60);
+   const s = Math.floor((diff / 1000) % 60);
    el.textContent = `${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
  }
  tick();
- setInterval(tick,1000);
+ setInterval(tick, 1000);
+}
+function createCalendar(posText, compText, id) {
+ const el = document.getElementById(id);
+ if(!el) return;
+ const now = new Date();
+ const months = [];
+ for(let i=0;i<12;i++){
+   const dt = new Date(now.getFullYear(), now.getMonth()+i, 1);
+   months.push({month: dt.getMonth(), year: dt.getFullYear(), label: dt.toLocaleString('default',{month:'short', year:'2-digit'})});
+ }
+ const start = posText ? new Date(posText.replace(" ", "T")) : null;
+ const end = compText ? new Date(compText.replace(" ", "T")) : null;
+ months.forEach(m=>{
+   const div = document.createElement("div");
+   div.className = "month";
+   div.textContent = m.label;
+   if(start && end){
+     const mStart = new Date(start.getFullYear(), start.getMonth(),1);
+     const mEnd = new Date(end.getFullYear(), end.getMonth(),1);
+     if(mStart <= new Date(m.year,m.month,1) && new Date(m.year,m.month,1) <= mEnd){
+       div.classList.add("highlight");
+     }
+   }
+   el.appendChild(div);
+ });
 }
 loadProjects();
 </script>
