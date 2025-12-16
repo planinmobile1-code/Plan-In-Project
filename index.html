@@ -72,11 +72,11 @@ async function loadProjects() {
      .map(r => ({
        name: r.c[0]?.v || "",
        team: r.c[1]?.v || "",
-       deadlineText: r.c[3]?.v || "",
-       manager: r.c[4]?.v || "",
-       secretary: r.c[5]?.v || "",
-       possession: r.c[6]?.v || "",
-       completion: r.c[7]?.v || ""
+       manager: r.c[2]?.v || "",
+       secretary: r.c[3]?.v || "",
+       possession: r.c[4]?.v || "",
+       completion: r.c[5]?.v || "",
+       deadlineText: r.c[6]?.v || ""
      }));
    // 按 teamOrder 排序
    projects.sort((a,b)=>{
