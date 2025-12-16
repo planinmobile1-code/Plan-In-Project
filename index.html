@@ -31,35 +31,30 @@ h1 {
 .project-info p {
  margin: 4px 0;
 }
+.countdown {
+ margin: 10px 0;
+ font-weight: bold;
+ font-size: 18px;
+ color: #d32f2f;
+}
 .calendar {
  display: flex;
  gap: 10px;
  overflow-x: auto;
+ align-items: center;
 }
 .month {
- display: grid;
- grid-template-columns: repeat(7, 24px);
- gap: 2px;
-}
-.month-title {
- grid-column: span 7;
+ width: 60px;
  text-align: center;
- font-size: 12px;
- margin-bottom: 2px;
-}
-.day {
- width: 24px;
- height: 24px;
+ padding: 5px;
+ border-radius: 6px;
  background: #eee;
- font-size: 10px;
- text-align: center;
- line-height: 24px;
- border-radius: 4px;
+ font-size: 12px;
+ font-weight: bold;
 }
-.day.highlight {
+.month.highlight {
  background: #4caf50;
  color: white;
- font-weight: bold;
 }
 </style>
 </head>
@@ -75,7 +70,8 @@ const projects = [
    manager: "Calvin Cheung",
    sec: "Kiki Chan",
    possession: "2024-09-01",
-   completion: "2026-07-01"
+   completion: "2026-07-01",
+   deadline: "2026-07-01"
  },
  {
    name: "KTE25",
@@ -83,7 +79,8 @@ const projects = [
    manager: "Ming Tam",
    sec: "Angel Leung",
    possession: "2026-02-08",
-   completion: "2026-05-30"
+   completion: "2026-05-30",
+   deadline: "2026-05-30"
  },
  {
    name: "CWT23",
@@ -91,44 +88,57 @@ const projects = [
    manager: "Edwin Zee",
    sec: "Dorothy Tsang",
    possession: "2026-01-30",
-   completion: "2026-03-15"
+   completion: "2026-03-15",
+   deadline: "2026-03-15"
  }
 ];
 // Sort projects by Team (PD1 → PD2 → PD3)
 projects.sort((a,b) => a.team.localeCompare(b.team));
-function renderDayGrid(possession, completion, monthStart) {
- const daysInMonth = new Date(monthStart.getFullYear(), monthStart.getMonth()+1,0).getDate();
- const fragment = document.createDocumentFragment();
- for(let d=1; d<=daysInMonth; d++){
-   const dayDiv = document.createElement("div");
-   dayDiv.className = "day";
-   dayDiv.textContent = d;
-   const dayDate = new Date(monthStart.getFullYear(), monthStart.getMonth(), d);
-   if(dayDate >= new Date(possession) && dayDate <= new Date(completion)){
-     dayDiv.classList.add("highlight");
-   }
-   fragment.appendChild(dayDiv);
- }
- return fragment;
-}
-function renderCalendar(project) {
- const start = new Date(); // current month
+// Render calendar months, highlight possession → completion
+function renderCalendarMonths(possession, completion) {
  const container = document.createElement("div");
  container.className = "calendar";
+ const start = new Date(); // current month
  for(let m=0; m<12; m++){
+   const date = new Date(start.getFullYear(), start.getMonth()+m, 1);
    const monthDiv = document.createElement("div");
    monthDiv.className = "month";
-   const date = new Date(start.getFullYear(), start.getMonth()+m, 1);
-   monthDiv.innerHTML = `<div class="month-title">${date.toLocaleString('default',{month:'short'})} ${date.getFullYear()}</div>`;
-   monthDiv.appendChild(renderDayGrid(project.possession, project.completion, date));
+   monthDiv.textContent = date.toLocaleString('default',{month:'short'}) + ' ' + date.getFullYear();
+   const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+   const lastDayOfMonth = new Date(date.getFullYear(), date.getMonth()+1, 0);
+   if(new Date(possession) <= lastDayOfMonth && new Date(completion) >= firstDayOfMonth){
+     monthDiv.classList.add("highlight");
+   }
    container.appendChild(monthDiv);
  }
  return container;
 }
+// Countdown based on deadline
+function createCountdown(deadline, id) {
+ const target = new Date(deadline);
+ function tick(){
+   const el = document.getElementById(id);
+   const now = new Date();
+   const diff = target - now;
+   if(diff <= 0){
+     el.textContent = "🎉 Completed!";
+     return;
+   }
+   const d = Math.floor(diff / (1000*60*60*24));
+   const h = Math.floor((diff / (1000*60*60)) % 24);
+   const m = Math.floor((diff / (1000*60)) % 60);
+   const s = Math.floor((diff / 1000) % 60);
+   el.textContent = `Countdown: ${d} Days ${h} Hours ${m} Minutes ${s} Seconds`;
+ }
+ tick();
+ setInterval(tick, 1000);
+ return `<div class="countdown" id="${id}"></div>`;
+}
+// Render all projects
 function renderProjects() {
  const container = document.getElementById("container");
  container.innerHTML = "";
- projects.forEach(p=>{
+ projects.forEach((p,i)=>{
    const projDiv = document.createElement("div");
    projDiv.className = "project";
    const infoDiv = document.createElement("div");
@@ -140,11 +150,14 @@ function renderProjects() {
 <p><b>Project Secretary:</b> ${p.sec}</p>
 <p><b>Tentative Possession:</b> ${p.possession}</p>
 <p><b>Tentative Completion:</b> ${p.completion}</p>
+     ${createCountdown(p.deadline, "cd"+i)}
    `;
-   const calendarDiv = renderCalendar(p);
+   const calendarDiv = renderCalendarMonths(p.possession, p.completion);
    projDiv.appendChild(infoDiv);
    projDiv.appendChild(calendarDiv);
    container.appendChild(projDiv);
+   // 啟動倒數
+   createCountdown(p.deadline, "cd"+i);
  });
 }
 renderProjects();
