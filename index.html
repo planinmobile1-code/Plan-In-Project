@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>Project Countdown Dashboard</title>
@@ -9,22 +9,18 @@ body {
  padding: 20px;
  background: #f3f4f6;
 }
-h1 {
- text-align: center;
-}
 .project {
- display: flex;
- justify-content: space-between;
- align-items: flex-start;
  background: white;
  padding: 20px;
  margin: 20px auto;
  max-width: 900px;
  border-radius: 10px;
  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+ display: flex;
+ justify-content: space-between;
 }
-.project-info {
- flex: 1;
+.left {
+ width: 50%;
 }
 .countdown {
  margin-top: 10px;
@@ -32,91 +28,87 @@ h1 {
  font-weight: bold;
 }
 .calendar {
- margin-left: 20px;
+ width: 45%;
+ display: flex;
+ flex-wrap: wrap;
 }
 .month {
- display: inline-block;
- width: 70px;
- padding: 6px;
+ width: 28%;
  margin: 2px;
+ padding: 6px;
  text-align: center;
  border-radius: 4px;
  background: #eee;
 }
 .month.highlight {
- background: #4caf50;
- color: white;
+ background: #ffcc80;
+ font-weight: bold;
 }
 </style>
 </head>
 <body>
-<h1>📅 Project Countdown Dashboard</h1>
+<h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
 <script>
 const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
-// Team 排序順序
-const teamOrder = ["PD1", "PD2", "PD3"];
 async function loadProjects() {
  try {
    const res = await fetch(jsonURL);
    let text = await res.text();
-   // Google Visualization JSON 字串裁切
-   const json = JSON.parse(text.substring(54, text.length - 2));
+   const json = JSON.parse(text.substring(47, text.length-2));
    const rows = json.table.rows;
-   // 解析 rows
-   let projects = rows
-     .filter(r => r.c && r.c[0]?.v && !r.c[0].v.startsWith("Project Name")) // 過濾 header
+   const projects = rows
+     .filter(r => r.c[0] && r.c[2]) // skip empty rows or headers
      .map(r => ({
        name: r.c[0]?.v || "",
        team: r.c[1]?.v || "",
-       deadlineText: r.c[3]?.v || "",
-       manager: r.c[4]?.v || "",
-       secretary: r.c[5]?.v || "",
-       possession: r.c[6]?.v || "", // Tentative Possession
-       completion: r.c[7]?.v || ""  // Tentative Completion
+       deadline: r.c[2]?.v || "",
+       possession: r.c[3]?.v || "",
+       completion: r.c[4]?.v || "",
+       manager: r.c[5]?.v || "",
+       secretary: r.c[6]?.v || ""
      }));
-   // 按 teamOrder 排序
-   projects.sort((a,b)=>{
-     const aTeam = a.team.split(":")[0].trim();
-     const bTeam = b.team.split(":")[0].trim();
-     return teamOrder.indexOf(aTeam) - teamOrder.indexOf(bTeam);
-   });
    renderProjects(projects);
- } catch (err) {
-   console.error("JSON load error:", err);
+ } catch(e) {
+   console.error("JSON load error:", e);
  }
 }
 function renderProjects(projects) {
  const container = document.getElementById("container");
  container.innerHTML = "";
- projects.forEach((p, i) => {
+ // 排序 PD1 -> PD2 -> PD3
+ const order = ["PD1", "PD2", "PD3"];
+ projects.sort((a,b)=>{
+   const ta = a.team.split(":")[0].trim();
+   const tb = b.team.split(":")[0].trim();
+   return order.indexOf(ta) - order.indexOf(tb);
+ });
+ projects.forEach((p,i)=>{
    const div = document.createElement("div");
    div.className = "project";
    div.innerHTML = `
-<div class="project-info">
+<div class="left">
 <h2>${p.name}</h2>
 <p><b>Team:</b> ${p.team}</p>
 <p><b>Project Manager:</b> ${p.manager}</p>
 <p><b>Project Secretary:</b> ${p.secretary}</p>
-<p><b>Deadline:</b> ${p.deadlineText}</p>
 <p class="countdown" id="cd${i}"></p>
-<p><b>Tentative Possession:</b> ${p.possession}</p>
-<p><b>Tentative Completion:</b> ${p.completion}</p>
 </div>
 <div class="calendar" id="cal${i}"></div>
    `;
    container.appendChild(div);
-   createCountdown(p.deadlineText, `cd${i}`);
-   createCalendar(p.possession, p.completion, `cal${i}`);
+   createCountdown(p.deadline, `cd${i}`);
+   renderCalendar(p.possession, p.completion, `cal${i}`);
  });
 }
-function createCountdown(dltxt, id) {
- const target = new Date(dltxt.replace(" ", "T"));
- function tick() {
+function createCountdown(deadline, id){
+ const target = new Date(deadline);
+ function tick(){
    const el = document.getElementById(id);
+   if(!el) return;
    const now = new Date();
    const diff = target - now;
-   if (diff <= 0) {
+   if(diff <= 0){
      el.textContent = "🎉 Completed!";
      return;
    }
@@ -129,30 +121,31 @@ function createCountdown(dltxt, id) {
  tick();
  setInterval(tick, 1000);
 }
-function createCalendar(posTxt, compTxt, id) {
+function renderCalendar(poss, comp, id){
  const el = document.getElementById(id);
+ if(!el) return;
+ el.innerHTML = "";
  const now = new Date();
- let startMonth = now.getMonth();
- let startYear = now.getFullYear();
- let possession = posTxt ? new Date(posTxt.replace(" ", "T")) : null;
- let completion = compTxt ? new Date(compTxt.replace(" ", "T")) : null;
- for (let i=0; i<12; i++) {
-   let month = (startMonth + i) % 12;
-   let year = startYear + Math.floor((startMonth + i)/12);
-   let monthStr = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][month] + " " + year;
-   let div = document.createElement("div");
-   div.className = "month";
-   // highlight if within possession → completion
-   if (possession && completion) {
-     let firstOfMonth = new Date(year, month, 1);
-     let lastOfMonth = new Date(year, month+1, 0);
-     if (firstOfMonth <= completion && lastOfMonth >= possession) {
+ const months = [];
+ for(let i=0;i<12;i++){
+   const dt = new Date(now.getFullYear(), now.getMonth()+i,1);
+   months.push(dt);
+ }
+ const possDate = poss ? new Date(poss) : null;
+ const compDate = comp ? new Date(comp) : null;
+ months.forEach(m=>{
+   const div = document.createElement("div");
+   div.className="month";
+   div.textContent = m.toLocaleString('default',{month:'short', year:'2-digit'});
+   if(possDate && compDate){
+     const mStart = new Date(m.getFullYear(), m.getMonth()+1,0); // month end
+     const mEnd = new Date(m.getFullYear(), m.getMonth(),1); // month start
+     if( (possDate <= mStart) && (compDate >= mEnd) ){
        div.classList.add("highlight");
      }
    }
-   div.textContent = monthStr;
    el.appendChild(div);
- }
+ });
 }
 loadProjects();
 </script>
