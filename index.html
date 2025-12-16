@@ -2,43 +2,122 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Debug Google Sheet</title>
+<title>Project Countdown Dashboard</title>
+<style>
+body {
+ font-family: Arial, sans-serif;
+ background: #f3f4f6;
+ padding: 30px;
+}
+.team {
+ max-width: 900px;
+ margin: 0 auto 40px;
+}
+.team h2 {
+ background: #111827;
+ color: white;
+ padding: 12px 20px;
+ border-radius: 8px;
+}
+.project {
+ background: white;
+ margin-top: 15px;
+ padding: 18px 22px;
+ border-radius: 10px;
+ box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+.project h3 {
+ margin: 0 0 8px;
+}
+.meta {
+ color: #374151;
+ font-size: 14px;
+}
+.countdown {
+ margin-top: 10px;
+ font-size: 20px;
+ font-weight: bold;
+}
+</style>
 </head>
 <body>
-<h1>Google Sheet Debug</h1>
-<pre id="output">Loading...</pre>
+<h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
+<div id="container"></div>
 <script>
 const jsonURL =
 "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
-async function test() {
- try {
-   const res = await fetch(jsonURL);
-   const text = await res.text();
-   // 顯示原始回應頭 300 字
-   console.log("RAW:", text.slice(0, 300));
-   const start = text.indexOf("{");
-   const end = text.lastIndexOf("}") + 1;
-   if (start === -1 || end === -1) {
-     document.getElementById("output").textContent =
-       "❌ 找不到 JSON {} 結構";
-     return;
-   }
-   const json = JSON.parse(text.substring(start, end));
-   if (!json.table || !json.table.rows) {
-     document.getElementById("output").textContent =
-       "❌ json.table.rows 不存在\n\n" +
-       JSON.stringify(json, null, 2);
-     return;
-   }
-   document.getElementById("output").textContent =
-     "✅ 成功讀到 rows: " + json.table.rows.length + "\n\n" +
-     JSON.stringify(json.table.rows, null, 2);
- } catch (e) {
-   document.getElementById("output").textContent =
-     "❌ Error:\n" + e;
- }
+const TEAM_ORDER = ["PD1", "PD2", "PD3"];
+async function loadProjects() {
+ const res = await fetch(jsonURL);
+ const text = await res.text();
+ const json = JSON.parse(
+   text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1)
+ );
+ const rows = json.table.rows;
+ const projects = rows
+   .map(r => ({
+     name: r.c[0]?.v,
+     teamRaw: r.c[1]?.v,
+     deadlineText: r.c[3]?.v,
+     manager: r.c[4]?.v,
+     sec: r.c[5]?.v
+   }))
+   // ✅ 去除 null 行
+   .filter(p => p.name && p.teamRaw && p.deadlineText)
+   // ✅ 拆 team code（PD1 / PD2 / PD3）
+   .map(p => ({
+     ...p,
+     team: p.teamRaw.split(":")[0].trim()
+   }));
+ renderByTeam(projects);
 }
-test();
+function renderByTeam(projects) {
+ const container = document.getElementById("container");
+ container.innerHTML = "";
+ TEAM_ORDER.forEach(team => {
+   const list = projects.filter(p => p.team === team);
+   if (list.length === 0) return;
+   const teamDiv = document.createElement("div");
+   teamDiv.className = "team";
+   teamDiv.innerHTML = `<h2>${team}</h2>`;
+   container.appendChild(teamDiv);
+   list.forEach((p, i) => {
+     const div = document.createElement("div");
+     div.className = "project";
+     const id = `${team}-${i}`;
+     div.innerHTML = `
+<h3>${p.name}</h3>
+<div class="meta">
+<div><b>Team:</b> ${p.teamRaw}</div>
+<div><b>Project Manager:</b> ${p.manager || "-"}</div>
+<div><b>Project Secretary:</b> ${p.sec || "-"}</div>
+</div>
+<div class="countdown" id="${id}"></div>
+     `;
+     teamDiv.appendChild(div);
+     createCountdown(p.deadlineText, id);
+   });
+ });
+}
+function createCountdown(text, id) {
+ const target = new Date(text.replace(" ", "T"));
+ function tick() {
+   const el = document.getElementById(id);
+   const diff = target - new Date();
+   if (diff <= 0) {
+     el.textContent = "🎉 Completed";
+     return;
+   }
+   const d = Math.floor(diff / 86400000);
+   const h = Math.floor(diff / 3600000) % 24;
+   const m = Math.floor(diff / 60000) % 60;
+   const s = Math.floor(diff / 1000) % 60;
+   el.textContent = `${d}d ${h}h ${m}m ${s}s`;
+ }
+ tick();
+ setInterval(tick, 1000);
+}
+loadProjects();
 </script>
 </body>
 </html>
