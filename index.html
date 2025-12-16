@@ -59,14 +59,16 @@ const teamOrder = ["PD1", "PD2", "PD3"];
 async function loadProjects() {
  try {
    const res = await fetch(jsonURL);
-   let text = await res.text();
-   // Google Visualization JSON 字串裁切
-   const json = JSON.parse(text.substring(54, text.length - 2));
+   const text = await res.text();
+   // 正則抓出 Google Visualization JSON
+   const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\((.*)\);/s);
+   if (!jsonMatch) throw new Error("無法解析 Google Sheets JSON");
+   const json = JSON.parse(jsonMatch[1]);
    const rows = json.table.rows;
    // 忽略 header row，再解析
-   let projects = rows
+   const projects = rows
      .slice(1) // 忽略第一行 header
-     .filter(r => r.c && r.c[0]?.v) // 只保留有值嘅行
+     .filter(r => r.c && r.c[0]?.v) // 只保留有值的行
      .map(r => ({
        name: r.c[0]?.v || "",
        team: r.c[1]?.v || "",
