@@ -7,46 +7,53 @@
 body {
    font-family: Arial, sans-serif;
    padding: 20px;
-   background: #f3f4f6;
+   background: #f5f5f5;
 }
 .team-group {
    margin-top: 40px;
 }
 .team-title {
-   font-size: 26px;
+   font-size: 28px;
    font-weight: bold;
-   margin-bottom: 10px;
+   padding: 10px 20px;
+   border-radius: 8px;
+   color: white;
+   margin-bottom: 15px;
 }
 .project {
    background: white;
-   padding: 20px;
-   margin: 15px auto;
+   padding: 18px 20px;
+   margin: 10px auto;
    max-width: 800px;
    border-radius: 10px;
-   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+   transition: transform 0.2s;
+}
+.project:hover {
+   transform: translateY(-3px);
+   box-shadow: 0 6px 18px rgba(0,0,0,0.12);
 }
 .countdown {
    margin-top: 10px;
-   font-size: 22px;
+   font-size: 20px;
    font-weight: bold;
+   color: #333;
 }
 </style>
 </head>
 <body>
-<h1 style="text-align:center;">📅 Project Countdown Dashboard</h1>
+<h1 style="text-align:center; margin-bottom:30px;">📅 Project Countdown Dashboard</h1>
 <div id="container"></div>
 <script>
 const jsonURL =
 "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json";
-/* Team → Director Map */
-const TEAM_DIRECTOR = {
-   "PD1": "Wai Leung",
-   "PD2": "Harley Lau",
-   "PD3": "Sherman Choi"
+/* Team → Director & Color Map */
+const TEAM_INFO = {
+   "PD1": { director: "Wai Leung", color: "#1E88E5" },
+   "PD2": { director: "Harley Lau", color: "#43A047" },
+   "PD3": { director: "Sherman Choi", color: "#F4511E" }
 };
-/* -------------------------------
-  Load Google Sheet JSON
--------------------------------- */
+/* Load Google Sheet JSON */
 async function loadProjects() {
    try {
        const res = await fetch(jsonURL);
@@ -56,13 +63,6 @@ async function loadProjects() {
        const cleanText = text.substring(start, end);
        const json = JSON.parse(cleanText);
        const rows = json.table.rows;
-       // Column Mapping:
-       // A = Project Name
-       // B = Team
-       // C = Deadline
-       // D = DeadlineText
-       // E = Project Manager
-       // F = Project Secretary
        const projects = rows.map(r => ({
            name: r.c[0]?.v || "",
            team: r.c[1]?.v || "",
@@ -75,28 +75,23 @@ async function loadProjects() {
        console.error("JSON load error:", err);
    }
 }
-/* -------------------------------
-  Group By Team
--------------------------------- */
+/* Group and render by fixed Team order */
 function renderGrouped(list) {
    const container = document.getElementById("container");
    container.innerHTML = "";
-   // Grouping
-   const groups = {};
-   list.forEach(p => {
-       if (!p.team) return;
-       if (!groups[p.team]) groups[p.team] = [];
-       groups[p.team].push(p);
-   });
-   // Render each team
-   Object.keys(groups).forEach(team => {
+   const fixedOrder = ["PD1", "PD2", "PD3"];
+   fixedOrder.forEach(team => {
+       const teamProjects = list.filter(p => p.team === team);
+       if (teamProjects.length === 0) return;
        const groupDiv = document.createElement("div");
        groupDiv.className = "team-group";
-       const director = TEAM_DIRECTOR[team] || "";
+       const info = TEAM_INFO[team] || {};
+       const color = info.color || "#333";
+       const director = info.director || "";
        groupDiv.innerHTML = `
-<div class="team-title">${team} – ${director}</div>
+<div class="team-title" style="background-color:${color};">${team} – ${director}</div>
        `;
-       groups[team].forEach((p, i) => {
+       teamProjects.forEach((p, i) => {
            const card = document.createElement("div");
            card.className = "project";
            card.innerHTML = `
@@ -111,9 +106,7 @@ function renderGrouped(list) {
        container.appendChild(groupDiv);
    });
 }
-/* -------------------------------
-  Countdown
--------------------------------- */
+/* Countdown Timer */
 function createCountdown(dltxt, id) {
    const target = new Date(dltxt.replace(" ", "T"));
    function tick() {
