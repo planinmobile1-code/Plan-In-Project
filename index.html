@@ -55,6 +55,7 @@ h3 {
 .gantt-container {
  position: relative;
  margin-bottom: 6px;
+ height: 25px;
 }
 .gantt-bar {
  position: absolute;
@@ -95,7 +96,9 @@ h3 {
 <div id="tooltip" class="tooltip"></div>
 <script>
 const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
-const teamColors = {PD1:"#4caf50",PD2:"#f57c00",PD3:"#1976d2"};
+// Team base colors
+const teamBaseColors = {PD1:"#4caf50", PD2:"#f57c00", PD3:"#1976d2"};
+const overlapColor = "#d32f2f"; // 重疊用紅色
 async function loadProjects() {
  try {
    const res = await fetch(jsonURL);
@@ -113,7 +116,7 @@ async function loadProjects() {
      completion: r.c[5]?.v || "",
      deadlineText: r.c[6]?.v || ""
    }));
-   // 先按 Team 分組
+   // 按 Team 分組
    const teams = {};
    projects.forEach(p=>{
      const teamKey = p.team.split(":")[0].trim();
@@ -141,6 +144,8 @@ function renderTeams(teams){
      if(!managerGroups[p.manager]) managerGroups[p.manager]=[];
      managerGroups[p.manager].push(p);
    });
+   // 紀錄已繪製棒的時間範圍，用於檢測重疊
+   const drawnRanges = [];
    Object.keys(managerGroups).forEach(manager=>{
      const h3 = document.createElement("h3");
      h3.textContent = manager;
@@ -157,16 +162,13 @@ function renderTeams(teams){
 <p><b>Tentative Completion:</b> ${p.completion}</p>
        `;
        container.appendChild(infoDiv);
-       // 甘特圖容器
        const ganttBarContainer = document.createElement("div");
        ganttBarContainer.className = "gantt-container";
-       ganttBarContainer.style.height = "25px";
-       ganttBarContainer.style.position = "relative";
        container.appendChild(ganttBarContainer);
        createCountdown(p.deadlineText,`cd-${teamKey}-${manager}-${i}`);
-       createGanttBar(p.possession,p.completion,ganttBarContainer,teamColors[teamKey] || "#4caf50",p,tooltip);
+       createGanttBarWithOverlap(p.possession, p.completion, ganttBarContainer, teamBaseColors[teamKey], overlapColor, drawnRanges, p, tooltip);
      });
-     // 月份軸放在 manager 最後
+     // 月份軸放在 manager 最底下
      const monthAxis = document.createElement("div");
      monthAxis.className = "month-axis";
      monthAxis.innerHTML = monthNames.map(m=>`<div>${m}</div>`).join("");
@@ -190,7 +192,11 @@ function createCountdown(dltxt,id){
  tick();
  setInterval(tick,1000);
 }
-function createGanttBar(posTxt, compTxt,barContainer,color,project,tooltip){
+// 判斷兩個時間範圍是否重疊
+function isOverlap(start1, end1, start2, end2){
+ return start1 <= end2 && end1 >= start2;
+}
+function createGanttBarWithOverlap(posTxt, compTxt, container, baseColor, overlapColor, drawnRanges, project, tooltip){
  if(!posTxt || !compTxt) return;
  const now = new Date();
  const months = Array.from({length:12},(_,i)=>new Date(now.getFullYear(),now.getMonth()+i,1));
@@ -204,11 +210,19 @@ function createGanttBar(posTxt, compTxt,barContainer,color,project,tooltip){
  const totalMonths=12;
  const leftPercent = (startIndex/totalMonths)*100;
  const widthPercent = ((endIndex-startIndex+1)/totalMonths)*100;
+ // 檢查是否與已繪製棒重疊
+ let isOverlapFlag = false;
+ drawnRanges.forEach(range=>{
+   if(isOverlap(startIndex,endIndex,range.start,range.end)){
+     isOverlapFlag = true;
+   }
+ });
+ // 繪製棒
  const bar = document.createElement("div");
  bar.className="gantt-bar";
  bar.style.left = leftPercent+"%";
  bar.style.width = widthPercent+"%";
- bar.style.backgroundColor = color;
+ bar.style.backgroundColor = isOverlapFlag ? overlapColor : baseColor;
  // hover tooltip
  bar.addEventListener("mousemove", e => {
    tooltip.style.display = "block";
@@ -225,7 +239,9 @@ function createGanttBar(posTxt, compTxt,barContainer,color,project,tooltip){
  bar.addEventListener("mouseleave", () => {
    tooltip.style.display = "none";
  });
- barContainer.appendChild(bar);
+ container.appendChild(bar);
+ // 記錄這個棒的範圍
+ drawnRanges.push({start:startIndex,end:endIndex});
 }
 loadProjects();
 </script>
