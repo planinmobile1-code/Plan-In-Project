@@ -49,6 +49,7 @@ h2 {
  color: #d32f2f;
  margin-top: 4px;
 }
+/* 甘特圖 */
 .month-axis {
  display: flex;
  justify-content: space-between;
@@ -69,12 +70,26 @@ h2 {
  border-radius: 4px;
  top: 2px;
  opacity: 0.85;
+ cursor: pointer;
+}
+.tooltip {
+ position: absolute;
+ background: rgba(0,0,0,0.85);
+ color: white;
+ padding: 6px 10px;
+ border-radius: 4px;
+ font-size: 0.85em;
+ pointer-events: none;
+ white-space: nowrap;
+ z-index: 1000;
+ display: none;
 }
 </style>
 </head>
 <body>
 <h1>📅 Project Manager Gantt Dashboard</h1>
 <div id="container"></div>
+<div id="tooltip" class="tooltip"></div>
 <script>
 const jsonURL = "https://docs.google.com/spreadsheets/d/1_jNi6ukRJRNwNrzikG-gIZnPSjGHPpDs_ckDSy9pBNA/gviz/tq?tqx=out:json&gid=0";
 const teamColors = {PD1:"#4caf50",PD2:"#f57c00",PD3:"#1976d2"};
@@ -111,8 +126,8 @@ function renderManagers(managers){
  const now = new Date();
  const months = Array.from({length:12},(_,i)=>new Date(now.getFullYear(),now.getMonth()+i,1));
  const monthNames = months.map(m => m.toLocaleString('en', {month:'short'}));
+ const tooltip = document.getElementById("tooltip");
  Object.keys(managers).forEach(manager=>{
-   // Manager 標題
    const h2 = document.createElement("h2");
    h2.textContent = manager;
    container.appendChild(h2);
@@ -140,7 +155,7 @@ function renderManagers(managers){
      `;
      divContainer.insertBefore(infoDiv,ganttBar);
      createCountdown(p.deadlineText,`cd-${manager}-${i}`);
-     createGanttBar(p.possession,p.completion,ganttBar,teamColors[p.team.split(":")[0]] || "#4caf50");
+     createGanttBar(p.possession,p.completion,ganttBar,teamColors[p.team.split(":")[0]] || "#4caf50",p,tooltip);
    });
  });
 }
@@ -160,7 +175,7 @@ function createCountdown(dltxt,id){
  tick();
  setInterval(tick,1000);
 }
-function createGanttBar(posTxt, compTxt,barContainer,color){
+function createGanttBar(posTxt, compTxt,barContainer,color,project,tooltip){
  if(!posTxt || !compTxt) return;
  const now = new Date();
  const months = Array.from({length:12},(_,i)=>new Date(now.getFullYear(),now.getMonth()+i,1));
@@ -179,6 +194,22 @@ function createGanttBar(posTxt, compTxt,barContainer,color){
  bar.style.left = leftPercent+"%";
  bar.style.width = widthPercent+"%";
  bar.style.backgroundColor = color;
+ // hover tooltip
+ bar.addEventListener("mousemove", e => {
+   tooltip.style.display = "block";
+   tooltip.style.left = e.pageX + 10 + "px";
+   tooltip.style.top = e.pageY + 10 + "px";
+   tooltip.innerHTML = `
+<b>${project.name}</b><br>
+     Team: ${project.team}<br>
+     Manager: ${project.manager}<br>
+     Possession: ${project.possession}<br>
+     Completion: ${project.completion}
+   `;
+ });
+ bar.addEventListener("mouseleave", () => {
+   tooltip.style.display = "none";
+ });
  barContainer.appendChild(bar);
 }
 loadProjects();
